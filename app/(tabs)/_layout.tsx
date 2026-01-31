@@ -13,6 +13,10 @@ export default function TabLayout() {
           paddingBottom: 5,
           height: 60,
         },
+        tabBarLabelStyle: {
+          fontSize: 10, // 文字稍微小一点，防止5个挤不下
+          fontWeight: '500',
+        },
       }}
     >
       {/* Tab 1: 首页 */}
@@ -26,7 +30,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Tab 2: 购物车 */}
       <Tabs.Screen
         name="cart"
         options={{
@@ -36,8 +39,26 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: 'Orders',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'list' : 'list-outline'} size={24} color={color} />
+          ),
+        }}
+      />
 
-      {/* Tab 3: 我的 (Account) */}
+      <Tabs.Screen
+        name="reviews"
+        options={{
+          title: 'Reviews', // 名字太长可以简写为 Reviews
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'star' : 'star-outline'} size={24} color={color} />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="profile"
         options={{
