@@ -1,6 +1,6 @@
 // 你的后端 HTTPS 地址
 // 注意：模拟器里不能写 localhost，要写你电脑的局域网 IP 或者公网域名
-export const BASE_URL = 'https://mock-api';
+export const BASE_URL = 'http://18.140.49.89:30090';
 
 /**
  * API 端点配置文件

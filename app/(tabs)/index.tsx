@@ -81,7 +81,7 @@ export default function HomeScreen() {
   return [picInfo];
 }
 
-  const getFirstImage = (picInfo: string): string => {
+const getFirstImage = (picInfo: string): string => {
   const images = parsePicInfo(picInfo);
   console.log('getFirstImage: parsed images:', images);
   const first = images.length > 0 ? images[0] : '';
@@ -96,10 +96,10 @@ export default function HomeScreen() {
     if (firstImage) {
       // 如果已经是完整的URL，直接返回
       if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
-        return firstImage
+        return { uri: firstImage };
       }
       // 否则拼接S3基础URL
-      return `${S3_CONFIG.BASE_URL}${firstImage}`
+      return { uri:`${S3_CONFIG.BASE_URL}${firstImage}`}
     }
   }
   return defaultImg
