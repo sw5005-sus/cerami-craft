@@ -1,3 +1,4 @@
+import type { Product } from '../../src/api/product';
 import { S3_CONFIG } from '../config/api-endpoints';
 
 /**
@@ -35,3 +36,52 @@ export const getImageFileName = (fullUrl: string): string => {
   // 从URL中提取文件名
   return fullUrl.replace(S3_CONFIG.BASE_URL, '');
 };
+
+
+export  const parsePicInfo = (picInfo: string): string[] => {
+  if (!picInfo) {
+    console.log('parsePicInfo: empty input, returning []');
+    return [];
+  }
+  
+  try {
+    // 尝试解析为 JSON 数组
+    const parsed = JSON.parse(picInfo);
+    if (Array.isArray(parsed)) {
+      const filtered = parsed.filter(item => typeof item === 'string');
+      console.log('parsePicInfo: filtered array:', filtered);
+      return filtered;
+    } else {
+      console.log('parsePicInfo: parsed is not array');
+    }
+  } catch (error) {
+    console.log('parsePicInfo: JSON.parse failed:', error);
+  }
+  
+  // 如果不是 JSON 数组格式，当作单个文件名
+  console.log('parsePicInfo: treating as single filename:', [picInfo]);
+  return [picInfo];
+}
+const getFirstImage = (picInfo: string): string => {
+  const images = parsePicInfo(picInfo);
+  console.log('getFirstImage: parsed images:', images);
+  const first = images.length > 0 ? images[0] : '';
+  console.log('getFirstImage: first image:', first);
+  return first;
+}
+export const getProductImage = (product: Product) => {
+  const defaultImg = require('../../assets/images/defaultimg.png'); 
+  if (product.pic_info && product.pic_info.trim()) {
+    // 解析 pic_info 获取第一个图片
+    const firstImage = getFirstImage(product.pic_info)
+    if (firstImage) {
+      // 如果已经是完整的URL，直接返回
+      if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+        return { uri: firstImage };
+      }
+      // 否则拼接S3基础URL
+      return { uri:`${S3_CONFIG.BASE_URL}${firstImage}`}
+    }
+  }
+  return defaultImg
+}
