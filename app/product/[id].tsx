@@ -2,18 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 // === 引入 API 和 工具 ===
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { addToCart as addToCartAPI } from '../../src/api/cart';
 import { getProductComments } from '../../src/api/comment'; // 假设你有这个
 import { getProductDetail } from '../../src/api/product';
@@ -141,7 +142,7 @@ export default function ProductDetailScreen() {
   const isOutOfStock = product.stock <= 0 || product.status !== 1;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* 顶部导航栏 (浮动返回按钮) */}
       <View style={styles.navBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -283,7 +284,7 @@ export default function ProductDetailScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

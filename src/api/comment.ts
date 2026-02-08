@@ -1,5 +1,9 @@
 import axios from 'axios'
 /**
+ * 评论相关 API 函数
+ */
+import { request } from './api'
+/**
  * 获取当前用户发布的评论
  */
 export async function getUserComments() {
@@ -35,10 +39,6 @@ export const likeComment = async (review_id: string): Promise<boolean> => {
     return false;
   }
 };
-/**
- * 评论相关 API 函数
- */
-import { request } from './api'
 
 // 评论接口
 export interface Comment {
@@ -112,7 +112,7 @@ export const getProductComments = async (productId: number): Promise<{ comments:
       throw new Error(response.msg || response.error || 'Failed to get product comments')
     }
   } catch (error) {
-    console.error('Get product comments API error:', error)
+    //console.error('Get product comments API error:', error)
     throw error
   }
 }

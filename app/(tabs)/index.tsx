@@ -55,31 +55,31 @@ export default function HomeScreen() {
   const selectedSortLabel = sortOptions.find(o => o.value === sortOrder)?.label || 'Sort by';
 
   const parsePicInfo = (picInfo: string): string[] => {
-  console.log('parsePicInfo input:', picInfo);
-  if (!picInfo) {
-    console.log('parsePicInfo: empty input, returning []');
-    return [];
-  }
-  
-  try {
-    // 尝试解析为 JSON 数组
-    const parsed = JSON.parse(picInfo);
-    console.log('parsePicInfo: JSON.parse result:', parsed);
-    if (Array.isArray(parsed)) {
-      const filtered = parsed.filter(item => typeof item === 'string');
-      console.log('parsePicInfo: filtered array:', filtered);
-      return filtered;
-    } else {
-      console.log('parsePicInfo: parsed is not array');
+    console.log('parsePicInfo input:', picInfo);
+    if (!picInfo) {
+      console.log('parsePicInfo: empty input, returning []');
+      return [];
     }
-  } catch (error) {
-    console.log('parsePicInfo: JSON.parse failed:', error);
+    
+    try {
+      // 尝试解析为 JSON 数组
+      const parsed = JSON.parse(picInfo);
+      console.log('parsePicInfo: JSON.parse result:', parsed);
+      if (Array.isArray(parsed)) {
+        const filtered = parsed.filter(item => typeof item === 'string');
+        console.log('parsePicInfo: filtered array:', filtered);
+        return filtered;
+      } else {
+        console.log('parsePicInfo: parsed is not array');
+      }
+    } catch (error) {
+      console.log('parsePicInfo: JSON.parse failed:', error);
+    }
+    
+    // 如果不是 JSON 数组格式，当作单个文件名
+    console.log('parsePicInfo: treating as single filename:', [picInfo]);
+    return [picInfo];
   }
-  
-  // 如果不是 JSON 数组格式，当作单个文件名
-  console.log('parsePicInfo: treating as single filename:', [picInfo]);
-  return [picInfo];
-}
 
 const getFirstImage = (picInfo: string): string => {
   const images = parsePicInfo(picInfo);
@@ -140,7 +140,7 @@ const getFirstImage = (picInfo: string): string => {
 
   const goToDetail = (id: string) => {
     // 如果用的是 Expo Router
-    //router.push(`/product/${id}`);
+    router.push(`/product/${id}`);
     // 如果是 React Navigation: navigation.navigate('ProductDetail', { id })
   };
 
