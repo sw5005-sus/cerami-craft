@@ -139,9 +139,7 @@ const getFirstImage = (picInfo: string): string => {
   };
 
   const goToDetail = (id: string) => {
-    // 如果用的是 Expo Router
     router.push(`/product/${id}`);
-    // 如果是 React Navigation: navigation.navigate('ProductDetail', { id })
   };
 
   // === 渲染单个商品卡片 ===

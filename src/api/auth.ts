@@ -1,10 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../config/api-endpoints';
+import type { ActivateRequest, ActivateResponse, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from '../types/api';
 import { request } from './api';
-
-// 这里为了编译通过，简单定义一下类型，你可以用你 src/types/api.ts 里的
-interface LoginResponse { token?: string; [key: string]: any }
-interface LoginRequest { email?: string; password?: string; id?: number }
 
 // 用户登录
 export const login = async (credentials: LoginRequest): Promise<LoginResponse> => {
@@ -15,12 +11,14 @@ export const login = async (credentials: LoginRequest): Promise<LoginResponse> =
       id: credentials.id || 0,
     });
     
-    // 假设后端直接返回 token 字段，或者我们在 Header 里拿到了
-    // 为了模拟之前的逻辑，我们存一个标记
-    await AsyncStorage.setItem('userToken', 'logged-in-' + Date.now());
+    // 请求成功就说明登录成功（状态码 200）
+    // 由于 token 在 cookie 中返回，我们设置一个标识表示已登录
+    localStorage.setItem('userToken', 'logged-in-' + Date.now());
     
-    // 注意：React Native 里不能 dispatchEvent
-    // 如果需要更新 UI 状态，请在 LoginScreen 页面里调用 setLoginState
+    // 触发登录状态变化事件
+    window.dispatchEvent(new CustomEvent('loginStatusChanged', {
+      detail: { user: { email: credentials.email } }
+    }));
     
     return response;
   } catch (error) {
@@ -29,22 +27,62 @@ export const login = async (credentials: LoginRequest): Promise<LoginResponse> =
   }
 };
 
-// 用户登出
-export const logout = async (): Promise<void> => {
+// 用户注册
+export const register = async (userInfo: RegisterRequest): Promise<RegisterResponse> => {
   try {
-    // 调用后端登出
-    await request.post(API_ENDPOINTS.USER.LOGOUT);
+    const response = await request.post<RegisterResponse>(API_ENDPOINTS.USER.REGISTER, userInfo);
+    return response;
   } catch (error) {
-    console.warn('Logout API failed, forcing local logout');
-  } finally {
-    // 无论后端是否成功，前端必须清除 token
-    await AsyncStorage.removeItem('userToken');
-    console.log('Local logout successful');
+    console.error('Registration failed:', error);
+    throw error;
   }
 };
 
-// 检查是否登录 (注意：这是异步的！)
-export const checkAuthStatus = async (): Promise<boolean> => {
-  const token = await AsyncStorage.getItem('userToken');
+// 激活用户账户
+export const activateAccount = async (activateInfo: ActivateRequest): Promise<ActivateResponse> => {
+  try {
+    const response = await request.put<ActivateResponse>(API_ENDPOINTS.USER.ACTIVATE, activateInfo);
+    return response;
+  } catch (error) {
+    console.error('Activation failed:', error);
+    throw error;
+  }
+};
+
+// 用户登出
+export const logout = async (): Promise<void> => {
+  try {
+    // 调用后端登出API
+    await request.post(API_ENDPOINTS.USER.LOGOUT);
+    
+    // API调用成功后，清除本地存储的 token
+    localStorage.removeItem('userToken');
+    
+    // 触发登出状态变化事件
+    window.dispatchEvent(new CustomEvent('loginStatusChanged', {
+      detail: { user: null }
+    }));
+    
+    console.log('Logout successful');
+  } catch (error) {
+    console.error('Logout API failed:', error);
+    // 即使登出接口失败，也要清除本地 token（前端强制登出）
+    localStorage.removeItem('userToken');
+    window.dispatchEvent(new CustomEvent('loginStatusChanged', {
+      detail: { user: null }
+    }));
+    // 重新抛出错误，让调用者知道API调用失败了
+    throw error;
+  }
+};
+
+// 检查用户是否已登录
+export const isAuthenticated = (): boolean => {
+  const token = localStorage.getItem('userToken');
   return !!token;
+};
+
+// 获取存储的 token
+export const getAuthToken = (): string | null => {
+  return localStorage.getItem('userToken');
 };

@@ -66,7 +66,12 @@ export default function ProductDetailScreen() {
   const fetchComments = async () => {
     setCommentsLoading(true);
     try {
-      // 假设后端返回结构跟 Vue 一样: { comments: [], pinnedReview: ... }
+      const hasToken = false;
+      if (!hasToken) {
+        console.log('🔒 [Dev Mode] No token logic yet, defaulting to Guest view.');
+        setCommentsLoading(false);
+        return; // ⛔️ 直接结束，不给后端发请求
+      }
       // @ts-ignore
       const res = await getProductComments(parseInt(productId));
       setComments(res.comments || []);
