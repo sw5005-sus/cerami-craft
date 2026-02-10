@@ -131,7 +131,7 @@ export default function LoginScreen() {
         <View style={styles.headerImageContainer}>
           {/* 这里建议放一张本地图片，或者你原来的 headImage.png */}
           <Image 
-            source={require('../assets/adaptive-icon.png')} // 暂时用默认图，记得换成你的花瓶图
+            source={require('../assets/images/logo.png')} // 暂时用默认图，记得换成你的花瓶图
             style={styles.headImage}
             resizeMode="cover"
           />

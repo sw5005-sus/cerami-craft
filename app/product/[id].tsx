@@ -20,6 +20,7 @@ import { getProductComments } from '../../src/api/comment'; // 假设你有这�
 import { getProductDetail } from '../../src/api/product';
 import { S3_CONFIG } from '../../src/config/api-endpoints';
 import { getProductImage, parsePicInfo } from '../../src/utils/image';
+import { tokenStorage } from '../../src/utils/storage';
 
 const { width } = Dimensions.get('window');
 
@@ -66,7 +67,7 @@ export default function ProductDetailScreen() {
   const fetchComments = async () => {
     setCommentsLoading(true);
     try {
-      const hasToken = false;
+      const hasToken = tokenStorage.get();;
       if (!hasToken) {
         console.log('🔒 [Dev Mode] No token logic yet, defaulting to Guest view.');
         setCommentsLoading(false);
