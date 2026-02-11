@@ -1,7 +1,7 @@
-//import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
 import { BASE_URL } from '../config/api-endpoints';
+import { tokenStorage } from '../utils/storage';
 
 // 定义错误类型 (根据你的代码推断)
 export interface ApiError {
@@ -26,11 +26,18 @@ const createApiInstance = (): AxiosInstance => {
   // === 请求拦截器 ===
   instance.interceptors.request.use(
     async (config) => {
-      // [关键修改] AsyncStorage 是异步的，必须 await
       try {
-        const token = null; //await AsyncStorage.getItem('userToken');
+        const token = tokenStorage.get();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('🔥🔥🔥 [API DEBUG REQUEST] 🔥🔥🔥');
+          console.log(JSON.stringify({
+            url: '' + config.baseURL + config.url,
+            method: config.method?.toUpperCase(), // POST/GET
+            headers: config.headers, // 重点：让后端看这里面有没有 Authorization
+            body: config.data        // 重点：这里就是你要的参数
+          }, null, 2));
+          console.log('🔥🔥🔥 [END DEBUG] 🔥🔥🔥');
         }
       } catch (e) {
         console.error('Error fetching token', e);

@@ -67,7 +67,7 @@ export default function ProductDetailScreen() {
   const fetchComments = async () => {
     setCommentsLoading(true);
     try {
-      const hasToken = tokenStorage.get();;
+      const hasToken = tokenStorage.get();
       if (!hasToken) {
         console.log('🔒 [Dev Mode] No token logic yet, defaulting to Guest view.');
         setCommentsLoading(false);

@@ -1,6 +1,6 @@
-import { apiClient } from './api';
 import { API_ENDPOINTS } from '../config/api-endpoints';
-import type { UserProfile, ApiResponse } from '../types/api';
+import type { ApiResponse, UserProfile } from '../types/api';
+import { apiClient } from './api';
 
 /**
  * 获取当前用户信息
