@@ -1,0 +1,49 @@
+name: Build Android APK
+
+# 触发条件：当 main 分支有 push 时触发
+on:
+  push:
+    branches:
+      - main
+  # 允许在 GitHub 页面手动点击按钮触发
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 拉取代码
+      - name: 🏗 Setup repo
+        uses: actions/checkout@v3
+
+      # 2. 设置 Node.js 环境
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: 'npm'
+
+      # 3. 安装依赖
+      - name: 📦 Install dependencies
+        run: npm install
+
+      # 4. (可选) 类型检查 - 保证代码没 bug 才打包
+      # 如果你的项目有很多 TS 报错，这步会失败，可以先注释掉
+      # - name: 🔎 Type Check
+      #   run: npm run tsc
+
+      # 5. 安装 EAS CLI
+      - name: 🔧 Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # 6. 开始打包
+      # --profile preview: 对应 eas.json 里的 preview 配置 (打 apk)
+      # --platform android: 只打安卓
+      # --non-interactive: 自动化模式，不等待输入
+      - name: 🚀 Build Android APK
+        run: eas build --platform android --profile preview --non-interactive
