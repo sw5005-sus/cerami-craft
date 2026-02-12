@@ -1,125 +1,99 @@
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { getPayAccountSelf, topUpAccount, type PayAccountInfo, type TopUpData } from '../api/payment'
+import { useCallback, useState } from 'react';
+import { Alert } from 'react-native';
+import { getPayAccountSelf, topUpAccount, type PayAccountInfo } from '../api/payment';
 
-// 错误对象类型定义
-interface ApiError {
-  code?: number
-  message?: string
-  err_msg?: string
-}
-
-/**
- * 支付账户管理 Composable
- */
 export const usePaymentAccount = () => {
-  // 状态管理
-  const payAccount = ref<PayAccountInfo | null>(null)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-  const topUpLoading = ref(false)
+  const [payAccount, setPayAccount] = useState<PayAccountInfo | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [topUpLoading, setTopUpLoading] = useState(false);
+  // React 不需要 error state 来控制 UI 显示，通常直接 Alert，但保留也行
+  const [error, setError] = useState<string | null>(null);
 
-  /**
-   * 加载支付账户信息
-   */
-  const loadPayAccount = async () => {
-    if (loading.value) return
-
-    loading.value = true
-    error.value = null
-
+  const loadPayAccount = useCallback(async () => {
     try {
-      const accountData = await getPayAccountSelf()
-      payAccount.value = accountData
-      console.log('Payment account loaded:', accountData)
-    } catch (err: unknown) {
-      console.error('Failed to load payment account:', err)
+      setLoading(true);
+      setError(null);
+      const data = await getPayAccountSelf();
+      setPayAccount(data);
+      console.log('Payment account loaded:', data);
+    } catch (err: any) {
+      console.error('Failed to load payment account:', err);
       
-      // 根据错误类型设置不同的错误消息
-      const errorObj = err as ApiError
-      if (errorObj?.code === 500) {
-        error.value = 'Payment service is currently unavailable. Please try again later.'
-      } else if (errorObj?.code === 401) {
-        error.value = 'Authentication required. Please login again.'
-      } else if (errorObj?.code === -1) {
-        error.value = 'Network connection failed. Please check your internet connection.'
+      // ✅ 复刻原版的错误处理逻辑
+      let errorMsg = 'Failed to load payment account';
+      
+      // 检查 err.response (Axios 错误结构)
+      const status = err.response?.status;
+      const serverCode = err.response?.data?.code; // 或者是后端返回的 code
+
+      if (status === 500 || serverCode === 500) {
+        errorMsg = 'Payment service is currently unavailable.';
+      } else if (status === 401) {
+        errorMsg = 'Authentication required.';
+      } else if (err.message === 'Network Error') { // RN 的网络错误通常叫这个
+        errorMsg = 'Network connection failed.';
       } else {
-        error.value = errorObj?.err_msg || errorObj?.message || 'Failed to load payment account'
+        errorMsg = err.message || errorMsg;
       }
       
-      // 只在非认证错误时显示错误消息
-      if (errorObj?.code !== 401 && error.value) {
-        ElMessage.error(error.value)
+      setError(errorMsg);
+      // 401 通常会被全局拦截器处理，这里只弹非 401 错误
+      if (status !== 401) {
+        // 这里的 console.log 是为了调试，你可以决定是否 Alert
+        console.log('Payment Error:', errorMsg);
       }
     } finally {
-      loading.value = false
+      setLoading(false);
     }
-  }
+  }, []);
 
-  /**
-   * 格式化余额显示
-   */
-  const formatBalance = (balance: number): string => {
-    return `$${balance.toFixed(2)}`
-  }
-
-  /**
-   * 格式化日期显示
-   */
-  const formatDate = (timestamp: number): string => {
-    if (!timestamp) return 'N/A'
-    const date = new Date(timestamp * 1000)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}/${month}/${day}`
-  }
-
-  /**
-   * 充值账户余额
-   */
-  const performTopUp = async (redeemCode: string): Promise<TopUpData> => {
-    if (!redeemCode || !redeemCode.trim()) {
-      throw new Error('Redeem code is required')
+  const performTopUp = async (redeemCode: string) => {
+    if (!redeemCode.trim()) {
+      Alert.alert('Error', 'Redeem code is required');
+      return;
     }
 
-    topUpLoading.value = true
-    
     try {
-      const result = await topUpAccount(redeemCode.trim())
+      setTopUpLoading(true);
+      const result = await topUpAccount(redeemCode.trim());
       
-      // 充值成功后更新账户信息
-      if (payAccount.value) {
-        payAccount.value.balance = result.current_balance
+      // 充值成功后，立即更新本地状态，提升体验
+      if (payAccount) {
+        setPayAccount({
+          ...payAccount,
+          balance: result.current_balance
+        });
       }
       
-      ElMessage.success(`Successfully topped up $${result.top_up_amount.toFixed(2)}!`)
-      console.log('Top-up successful:', result)
-      
-      return result
-    } catch (err: unknown) {
-      const errorMessage = (err as Error)?.message || 'Failed to top up account'
-      console.error('Top-up failed:', err)
-      ElMessage.error(errorMessage)
-      throw err
+      Alert.alert('Success', `Successfully topped up $${result.top_up_amount.toFixed(2)}!`);
+      return result;
+    } catch (err: any) {
+      const msg = err.message || 'Failed to top up account';
+      Alert.alert('Top Up Failed', msg);
+      throw err;
     } finally {
-      topUpLoading.value = false
+      setTopUpLoading(false);
     }
-  }
+  };
 
-  // 组件挂载时自动加载
-  onMounted(() => {
-    loadPayAccount()
-  })
+  // 格式化辅助函数 (如果你需要的话，也可以直接在组件里写)
+  const formatBalance = (balance: number) => `$${balance.toFixed(2)}`;
+  
+  const formatDate = (timestamp: number) => {
+    if (!timestamp) return 'N/A';
+    // 注意：后端如果返回秒级时间戳，需 * 1000
+    // 原版 Vue 代码里乘了 1000，这里保持一致
+    return new Date(timestamp * 1000).toLocaleDateString();
+  };
 
   return {
     payAccount,
     loading,
-    error,
     topUpLoading,
+    error,
     loadPayAccount,
+    performTopUp,
     formatBalance,
-    formatDate,
-    performTopUp
-  }
-}
+    formatDate
+  };
+};

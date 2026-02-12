@@ -1,275 +1,154 @@
-import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { 
-  getCart, 
-  addToCart, 
-  updateCartItem, 
-  removeFromCart, 
-  toggleCartItemSelection,
+import { useCallback, useState } from 'react';
+import { Alert } from 'react-native';
+import {
+  addToCart,
   clearCart,
-  getCartPriceEstimate
-} from '../api/cart'
-import type { CartData, CartPriceEstimate } from '../types/api'
+  getCart,
+  getCartPriceEstimate,
+  removeFromCart,
+  updateCartItem
+} from '../api/cart';
+import type { CartData, CartItem, CartPriceEstimate, UpdateCartItemRequest } from '../types/api';
 
-/**
- * 购物车管理 Composable
- */
 export const useCart = () => {
-  // 状态管理
-  const cartData = ref<CartData | null>(null)
-  const priceEstimate = ref<CartPriceEstimate | null>(null)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-
+  const [cartData, setCartData] = useState<CartData | null>(null);
+  const [priceEstimate, setPriceEstimate] = useState<CartPriceEstimate | null>(null);
+  const [loading, setLoading] = useState(false);
+  
   // 计算属性
-  const cartItems = computed(() => cartData.value?.cart_items || [])
-  const selectedItemCount = computed(() => cartData.value?.selected_item_count || 0)
-  const selectedPrice = computed(() => cartData.value?.selected_price || 0)
-  const totalItems = computed(() => cartItems.value.length)
-  const isEmpty = computed(() => totalItems.value === 0)
+  const cartItems = cartData?.cart_items || [];
+  const selectedItemCount = cartData?.selected_item_count || 0;
+  const isEmpty = cartItems.length === 0;
 
-  /**
-   * 加载购物车数据
-   */
-  const loadCart = async () => {
-    if (loading.value) return
-
-    loading.value = true
-    error.value = null
-
+  // 加载购物车
+  const loadCart = useCallback(async () => {
     try {
-      const data = await getCart()
-      cartData.value = data
-      console.log('Cart loaded:', data)
+      setLoading(true);
+      const data = await getCart();
+      setCartData(data);
       
-      // 同时加载价格估算
-      await loadPriceEstimate()
-    } catch (err: unknown) {
-      const errorMessage = (err as Error)?.message || 'Failed to load cart'
-      error.value = errorMessage
-      console.error('Failed to load cart:', err)
-      
-      // 只在非认证错误时显示错误消息
-      if (!errorMessage.includes('401') && !errorMessage.includes('unauthorized')) {
-        ElMessage.error(errorMessage)
+      // 只有当购物车有东西时，才去拉取价格估算，避免空购物车报错
+      if (data.cart_items && data.cart_items.length > 0) {
+        try {
+          const estimate = await getCartPriceEstimate();
+          setPriceEstimate(estimate);
+        } catch (e) {
+          console.log('Price estimate failed (non-critical)');
+          setPriceEstimate(null);
+        }
+      } else {
+        setPriceEstimate(null);
       }
+    } catch (error: any) {
+      console.error('Load cart failed:', error);
     } finally {
-      loading.value = false
+      setLoading(false);
     }
-  }
+  }, []);
 
-  /**
-   * 加载价格估算
-   */
-  const loadPriceEstimate = async () => {
+  // 添加商品到购物车 (包装一层，方便 UI 调用)
+  const addItem = async (productId: number, quantity: number = 1) => {
     try {
-      console.log('Loading price estimate...')
-      const estimate = await getCartPriceEstimate()
-      priceEstimate.value = estimate
-      console.log('Price estimate loaded successfully:', estimate)
-      console.log('Formatted prices:', {
-        product_price: formatPrice(estimate.product_price),
-        shipping_price: formatPrice(estimate.shipping_price),
-        tax: formatPrice(estimate.tax),
-        total: formatPrice(estimate.total)
-      })
-    } catch (err: unknown) {
-      console.error('Failed to load price estimate:', err)
-      // 价格估算失败不显示错误消息，因为这不是关键功能
-      priceEstimate.value = null
+      await addToCart(productId, quantity);
+      Alert.alert('Success', 'Added to cart');
+      // 添加成功后刷新购物车
+      loadCart();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to add to cart');
     }
-  }
+  };
 
-  /**
-   * 添加商品到购物车
-   */
-  const addItemToCart = async (productId: number, quantity: number = 1) => {
+  // 更新数量
+  const updateQuantity = async (item: CartItem, newQty: number) => {
+    if (newQty <= 0) {
+      Alert.alert('Remove Item', 'Remove this item from cart?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: () => handleRemove(item.id) }
+      ]);
+      return;
+    }
+    
     try {
-      await addToCart(productId, quantity)
-      ElMessage.success('Item added to cart')
-      await loadCart() // 重新加载购物车
-    } catch (err: unknown) {
-      const errorMessage = (err as Error)?.message || 'Failed to add item to cart'
-      console.error('Failed to add item to cart:', err)
-      ElMessage.error(errorMessage)
-      throw err
-    }
-  }
-
-  /**
-   * 更新购物车商品数量
-   */
-  const updateItemQuantity = async (itemId: number, quantity: number) => {
-    if (quantity <= 0) {
-      await removeItemFromCart(itemId)
-      return
-    }
-
-    try {
-      // 找到对应的购物车项目
-      const item = cartItems.value.find(item => item.id === itemId)
-      if (!item) {
-        throw new Error('Cart item not found')
-      }
-
-      const updateData = {
+      // ✅ 严格构造 UpdateCartItemRequest
+      const requestData: UpdateCartItemRequest = {
         id: item.id,
         product_id: item.product_info.id,
-        quantity,
+        quantity: newQty,
         selected: item.selected,
-        user_id: 0 // 将由后端从token中获取
-      }
+        user_id: 0 // 占位符
+      };
 
-      await updateCartItem(itemId, updateData)
-      await loadCart() // 重新加载购物车和价格估算
-    } catch (err: unknown) {
-      const errorMessage = (err as Error)?.message || 'Failed to update item quantity'
-      console.error('Failed to update item quantity:', err)
-      ElMessage.error(errorMessage)
-      throw err
+      await updateCartItem(item.id, requestData);
+      loadCart(); 
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update quantity');
     }
-  }
+  };
 
-  /**
-   * 从购物车删除商品
-   */
-  const removeItemFromCart = async (itemId: number) => {
+  // 切换选中状态
+  const toggleSelection = async (item: CartItem) => {
     try {
-      await removeFromCart(itemId)
-      ElMessage.success('Item removed from cart')
-      await loadCart() // 重新加载购物车
-    } catch (err: unknown) {
-      const errorMessage = (err as Error)?.message || 'Failed to remove item from cart'
-      console.error('Failed to remove item from cart:', err)
-      ElMessage.error(errorMessage)
-      throw err
-    }
-  }
+      // ✅ 严格构造 UpdateCartItemRequest
+      const requestData: UpdateCartItemRequest = {
+        id: item.id,
+        product_id: item.product_info.id,
+        quantity: item.quantity,
+        selected: !item.selected,
+        user_id: 0
+      };
 
-  /**
-   * 切换商品选择状态
-   */
-  const toggleItemSelection = async (itemId: number, selected: boolean) => {
-    // 找到当前的购物车项目
-    const currentItem = cartItems.value.find(item => item.id === itemId)
-    if (!currentItem) {
-      ElMessage.error('Cart item not found')
-      return
+      await updateCartItem(item.id, requestData);
+      loadCart();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to toggle selection');
     }
+  };
 
+  // 全选/反选
+  const toggleSelectAll = async (selectAll: boolean) => {
     try {
-      await toggleCartItemSelection(itemId, {
-        id: currentItem.id,
-        product_id: currentItem.product_info.id,
-        quantity: currentItem.quantity,
-        selected: selected,
-        user_id: 0 // 这里可能需要从用户状态中获取
-      })
-      await loadCart() // 重新加载购物车
-    } catch (err: unknown) {
-      const errorMessage = (err as Error)?.message || 'Failed to toggle item selection'
-      console.error('Failed to toggle item selection:', err)
-      ElMessage.error(errorMessage)
-      throw err
-    }
-  }
-
-  /**
-   * 选择所有商品
-   */
-  const selectAllItems = async () => {
-    try {
-      const promises = cartItems.value.map(item => 
-        toggleCartItemSelection(item.id, {
+      // 并发请求所有更新 (如果购物车很大，后端可能会压力大，但 Demo 没问题)
+      const promises = cartItems.map(item => {
+        const requestData: UpdateCartItemRequest = {
           id: item.id,
           product_id: item.product_info.id,
           quantity: item.quantity,
-          selected: true,
+          selected: selectAll,
           user_id: 0
-        })
-      )
-      await Promise.all(promises)
-      await loadCart() // 重新加载购物车
-    } catch (err: unknown) {
-      console.error('Failed to select all items:', err)
-      ElMessage.error('Failed to select all items')
-    }
-  }
+        };
+        return updateCartItem(item.id, requestData);
+      });
 
-  /**
-   * 取消选择所有商品
-   */
-  const unselectAllItems = async () => {
+      await Promise.all(promises);
+      loadCart();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update selection');
+    }
+  };
+
+  // 删除
+  const handleRemove = async (itemId: number) => {
     try {
-      const promises = cartItems.value.map(item => 
-        toggleCartItemSelection(item.id, {
-          id: item.id,
-          product_id: item.product_info.id,
-          quantity: item.quantity,
-          selected: false,
-          user_id: 0
-        })
-      )
-      await Promise.all(promises)
-      await loadCart() // 重新加载购物车
-    } catch (err: unknown) {
-      console.error('Failed to unselect all items:', err)
-      ElMessage.error('Failed to unselect all items')
+      await removeFromCart(itemId);
+      loadCart();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to remove item');
     }
-  }
-
-  /**
-   * 清空购物车
-   */
-  const clearCartItems = async () => {
-    try {
-      await clearCart()
-      ElMessage.success('Cart cleared')
-      await loadCart() // 重新加载购物车
-    } catch (err: unknown) {
-      const errorMessage = (err as Error)?.message || 'Failed to clear cart'
-      console.error('Failed to clear cart:', err)
-      ElMessage.error(errorMessage)
-      throw err
-    }
-  }
-
-  /**
-   * 格式化价格显示
-   */
-  const formatPrice = (price: number): string => {
-    return `$${(price / 100).toFixed(2)}`
-  }
-
-  // 组件挂载时自动加载
-  onMounted(() => {
-    loadCart()
-  })
+  };
 
   return {
-    // 状态
     cartData,
     cartItems,
     priceEstimate,
     loading,
-    error,
-    
-    // 计算属性
-    selectedItemCount,
-    selectedPrice,
-    totalItems,
     isEmpty,
-    
-    // 方法
+    selectedItemCount,
     loadCart,
-    loadPriceEstimate,
-    addItemToCart,
-    updateItemQuantity,
-    removeItemFromCart,
-    toggleItemSelection,
-    selectAllItems,
-    unselectAllItems,
-    clearCartItems,
-    formatPrice
-  }
-}
+    addItem,        // 导出这个给商品详情页用
+    updateQuantity,
+    toggleSelection,
+    toggleSelectAll,
+    handleRemove,
+    clearCart
+  };
+};
