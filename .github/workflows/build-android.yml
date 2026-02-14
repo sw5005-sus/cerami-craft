@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build and Download Android APK
 
 on:
   push:
@@ -30,3 +30,7 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas build --platform android --profile preview --non-interactive
+      
+      - name: Download APK
+        run: |
+          eas build:list --limit 1 --platform android --status finished
