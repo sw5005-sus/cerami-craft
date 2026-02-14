@@ -8,37 +8,25 @@ on:
 
 jobs:
   build:
-    name: Build APK
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 拉取代码
-      - name: 🏗 Setup repo
+      - name: 🏗 Checkout
         uses: actions/checkout@v3
 
-      # 2. 设置 Node.js 环境 (推荐用 LTS v20)
       - name: 🏗 Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: 20.x
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
-      # 3. 安装项目依赖
       - name: 📦 Install dependencies
-        run: npm install
+        run: npm ci
 
-      # 4. (关键修复) 手动安装 EAS CLI
-      # 使用 npm 安装比 action 内置的 yarn 安装更稳定
       - name: 🔧 Install EAS CLI
         run: npm install -g eas-cli
 
-      # 5. 配置 Expo Token
-      # 注意：这里去掉了 eas-version，防止它重复安装报错，只让它负责登录
-      - name: 🔑 Setup Expo Login
-        uses: expo/expo-github-action@v8
-        with:
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      # 6. 开始打包
-      - name: 🚀 Build Android APK
+      - name: 🚀 Build Android
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas build --platform android --profile preview --non-interactive
