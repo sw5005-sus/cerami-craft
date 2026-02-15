@@ -1,103 +1,121 @@
-/**
- * 结账相关的状态管理
- */
-import { ref, computed } from 'vue'
+import { useEffect, useMemo, useState } from 'react';
 
-interface CheckoutItem {
-  id: number
-  quantity: number
+// === 类型定义 (复刻 Vue 里的接口) ===
+export interface CheckoutItem {
+  id: number;
+  quantity: number;
   product_info: {
-    id: number
-    name: string
-    pic_info: string
-    price: number
-  }
-  total_price: number
-  selected: boolean
+    id: number;
+    name: string;
+    pic_info: string;
+    price: number;
+  };
+  total_price: number;
+  selected: boolean;
 }
 
-interface PriceEstimate {
-  product_price: number
-  shipping_price: number
-  tax: number
-  total: number
+export interface PriceEstimate {
+  product_price: number;
+  shipping_price: number;
+  tax: number;
+  total: number;
 }
 
-// 全局状态
-const checkoutItems = ref<CheckoutItem[]>([])
-const checkoutPriceEstimate = ref<PriceEstimate | null>(null)
+// === 🌍 全局状态 (模拟 Vue 的 Global State) ===
+// 必须定义在 Hook 外面，这样购物车页和结账页才能共享同一份数据
+let globalCheckoutItems: CheckoutItem[] = [];
+let globalPriceEstimate: PriceEstimate | null = null;
+
+// 订阅者列表 (用于当数据变动时通知所有组件更新)
+const listeners = new Set<() => void>();
+
+// 通知所有组件更新
+const notify = () => {
+  listeners.forEach(listener => listener());
+};
 
 export const useCheckout = () => {
-  
+  // 本地状态 (用于触发 React 重渲染)
+  const [checkoutItems, setItems] = useState<CheckoutItem[]>(globalCheckoutItems);
+  const [checkoutPriceEstimate, setEstimate] = useState<PriceEstimate | null>(globalPriceEstimate);
+
+  // 监听全局状态变化
+  useEffect(() => {
+    const listener = () => {
+      setItems([...globalCheckoutItems]); // 浅拷贝触发更新
+      setEstimate(globalPriceEstimate ? { ...globalPriceEstimate } : null);
+    };
+    
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }, []);
+
   /**
-   * 设置结账商品数据
+   * 设置结账数据 (Cart 页面调用)
    */
   const setCheckoutData = (selectedItems: CheckoutItem[], priceEstimate: PriceEstimate | null) => {
-    checkoutItems.value = [...selectedItems]
-    checkoutPriceEstimate.value = priceEstimate ? { ...priceEstimate } : null
-  }
+    globalCheckoutItems = [...selectedItems];
+    globalPriceEstimate = priceEstimate ? { ...priceEstimate } : null;
+    notify(); // 广播更新
+  };
 
   /**
-   * 计算选中商品的总价
+   * 清空结账数据 (下单成功后调用)
    */
-  const selectedItemsTotal = computed(() => {
-    return checkoutItems.value.reduce((total, item) => total + item.total_price, 0)
-  })
+  const clearCheckoutData = () => {
+    globalCheckoutItems = [];
+    globalPriceEstimate = null;
+    notify();
+  };
 
-  /**
-   * 获取商品价格（来自价格估算或回退计算）
-   */
-  const productPrice = computed(() => {
-    return checkoutPriceEstimate.value?.product_price || selectedItemsTotal.value
-  })
+  // === 计算属性 (对应 Vue 的 computed) ===
+  
+  const selectedItemsTotal = useMemo(() => {
+    return checkoutItems.reduce((total, item) => total + item.total_price, 0);
+  }, [checkoutItems]);
 
-  /**
-   * 获取运费
-   */
-  const shippingPrice = computed(() => {
-    return checkoutPriceEstimate.value?.shipping_price || 0
-  })
+  const productPrice = useMemo(() => {
+    return checkoutPriceEstimate?.product_price || selectedItemsTotal;
+  }, [checkoutPriceEstimate, selectedItemsTotal]);
 
-  /**
-   * 获取税费
-   */
-  const tax = computed(() => {
-    return checkoutPriceEstimate.value?.tax || 0
-  })
+  const shippingPrice = useMemo(() => {
+    return checkoutPriceEstimate?.shipping_price || 0;
+  }, [checkoutPriceEstimate]);
 
-  /**
-   * 获取总价
-   */
-  const totalPrice = computed(() => {
-    return checkoutPriceEstimate.value?.total || selectedItemsTotal.value
-  })
+  const tax = useMemo(() => {
+    return checkoutPriceEstimate?.tax || 0;
+  }, [checkoutPriceEstimate]);
+
+  const totalPrice = useMemo(() => {
+    return checkoutPriceEstimate?.total || selectedItemsTotal;
+  }, [checkoutPriceEstimate, selectedItemsTotal]);
 
   /**
    * 格式化价格
    */
   const formatPrice = (price: number) => {
-    // 如果价格是以分为单位（大于100），则转换为元
-    const displayPrice = price > 100 ? price / 100 : price
-    return displayPrice.toFixed(2)
-  }
-
-  /**
-   * 清空结账数据
-   */
-  const clearCheckoutData = () => {
-    checkoutItems.value = []
-    checkoutPriceEstimate.value = null
-  }
+    // 后端如果返回的是分，这里除以 100
+    // 如果已经是元，则直接显示
+    // 根据你的 Vue 代码逻辑：displayPrice = price > 100 ? price / 100 : price
+    const displayPrice = price > 100 ? price / 100 : price;
+    return displayPrice.toFixed(2);
+  };
 
   return {
     checkoutItems,
     checkoutPriceEstimate,
     setCheckoutData,
     clearCheckoutData,
+    
+    // Computed values
     productPrice,
     shippingPrice,
     tax,
     totalPrice,
+    
+    // Helper
     formatPrice
-  }
-}
+  };
+};
