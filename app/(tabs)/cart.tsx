@@ -67,7 +67,6 @@ export default function CartScreen() {
       Alert.alert('Oops', 'Please select at least one item');
       return;
     }
-    // 跳转到 Checkout 页面 (假设路径是 /checkout)
     router.push('/checkout');
   };
 
