@@ -27,7 +27,7 @@ const createApiInstance = (): AxiosInstance => {
   instance.interceptors.request.use(
     async (config) => {
       try {
-        const token = tokenStorage.get();
+        const token = await tokenStorage.get();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
           console.log('🔥🔥🔥 [API DEBUG REQUEST] 🔥🔥🔥');
@@ -59,11 +59,11 @@ const createApiInstance = (): AxiosInstance => {
   // === 响应拦截器 ===
   instance.interceptors.response.use(
     (response: AxiosResponse) => {
-      console.log('API Response:', response.status, response.config.url);
+      console.log('API Response:', response.status, response.headers, response.config.url);
       return response;
     },
     async (error) => {
-      console.error('Response Error:', error);
+      console.warn('Response Error:', error);
       
       if (error.response) {
         const { status, data } = error.response;
@@ -73,16 +73,16 @@ const createApiInstance = (): AxiosInstance => {
             // [关键修改] 不能直接 window.location.href
             // 我们清除 token，然后抛出错误，让 UI 层去决定跳转到登录页
             //await AsyncStorage.removeItem('userToken');
-            console.warn('Unauthorized: Token expired or invalid');
+            console.warn('warn Unauthorized: Token expired or invalid');
             break;
           case 403:
-            console.error('Permission Denied');
+            console.warn('error Permission Denied');
             break;
           case 404:
-            console.error('Resource Not Found');
+            console.warn('error Resource Not Found');
             break;
           case 500:
-            console.error('Server Error');
+            console.warn('error Server Error');
             break;
         }
         

@@ -45,10 +45,18 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      // 调用你的 API
       const res = await login({ email, password });
-      const token = res.data; //这可能有问题
+      let token = '';
+      const setCookie = res.headers['set-cookie'];
 
+      if (setCookie && Array.isArray(setCookie) && setCookie.length > 0) {
+        const cookieString = setCookie[0]; // 拿到第一条 cookie
+        const match = cookieString.match(/auth-token=([^;]+)/);
+        if (match && match[1]) {
+          token = match[1];
+          console.log('✅ Extracted Token from Cookie:', token.substring(0, 15) + '...');
+        }
+      }
       if (token) {
         // ✅ 关键步骤：存入 SecureStore
         await tokenStorage.save(token);
@@ -61,7 +69,7 @@ export default function LoginScreen() {
       }
     } catch (error: any) {
       console.error(error);
-      Alert.alert('Login Failed', error.message || 'Please check your credentials.');
+      Alert.alert('Login Failed', error.message || 'Please check your email or password.');
       
       // 🚨【开发后门】如果你想在后端挂掉时也能强制登录，取消下面这几行的注释：
       // await tokenStorage.save('fake-dev-token');

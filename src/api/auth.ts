@@ -1,18 +1,18 @@
+import type { AxiosResponse } from 'axios';
 import { API_ENDPOINTS } from '../config/api-endpoints';
 import type { ActivateRequest, ActivateResponse, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from '../types/api';
-import { request } from './api';
+import { apiClient, request } from './api';
 
 // 1. 用户登录
-export const login = async (credentials: LoginRequest): Promise<LoginResponse> => {
+export const login = async (credentials: LoginRequest): Promise<AxiosResponse<LoginResponse>> => {
   try {
     console.log('🚀 API Request: Login', { ...credentials, id: 0 });
     
-    const response = await request.post<LoginResponse>(API_ENDPOINTS.USER.LOGIN, {
+    const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.USER.LOGIN, {
       email: credentials.email,
       password: credentials.password,
       id: credentials.id || 0, 
     });
-    
     return response;
   } catch (error) {
     console.error('Login request failed:', error);
