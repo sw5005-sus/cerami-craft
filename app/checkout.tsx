@@ -134,6 +134,22 @@ export default function CheckoutScreen() {
       Alert.alert('Missing Info', 'Please fill in required shipping info.');
       return;
     }
+    // 将 totalPrice 统一转换为美元作比较 (和你的 formatPrice 逻辑保持一致)
+    const totalAmountInDollars = totalPrice > 100 ? totalPrice / 100 : totalPrice;
+    
+    // 如果还没加载出账户信息，或者余额小于总价，直接拦截
+    if (!payAccount) {
+      Alert.alert('Error', 'Payment account information is loading. Please wait.');
+      return;
+    }
+    
+    if (payAccount.balance < totalAmountInDollars) {
+      Alert.alert(
+        'Insufficient Balance', 
+        `Your balance ($${payAccount.balance.toFixed(2)}) is less than the order total ($${totalAmountInDollars.toFixed(2)}). Please top up first.`
+      );
+      return; // 余额不足，直接 return，不向后端发请求
+    }
 
     setLoading(true);
     try {
@@ -173,7 +189,7 @@ export default function CheckoutScreen() {
       ]);
 
     } catch (e: any) {
-      Alert.alert('Order Failed', e.message || 'Unknown error');
+      Alert.alert('Order Failed', e.err_msg || 'Unknown error');
     } finally {
       setLoading(false);
     }

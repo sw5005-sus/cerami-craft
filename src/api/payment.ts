@@ -1,5 +1,5 @@
-import apiClient from './api'
 import { PAYMENT_ENDPOINTS } from '../config/api-endpoints'
+import apiClient from './api'
 
 /**
  * 支付账户信息接口
@@ -94,7 +94,7 @@ export const topUpAccount = async (redeemCode: string): Promise<TopUpData> => {
       throw new Error(response.data.err_msg || 'Failed to top up account')
     }
   } catch (error) {
-    console.error('Top-up failed:', error)
+    console.warn('error Top-up failed:', error)
     throw error
   }
 }

@@ -268,7 +268,7 @@ export default function ProfileScreen() {
         {/* --- 菜单列表 --- */}
         <View style={styles.card}>
            {/* 地址管理：跳转 */}
-           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/address/list')}>
+           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/address')}>
             <View style={styles.menuLeft}>
                <Ionicons name="location-outline" size={22} color="#666" />
                <Text style={styles.menuText}>Shipping Addresses</Text>

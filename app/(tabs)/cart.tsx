@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useCart } from '../../src/composables/useCart';
+import { useCheckout } from '../../src/composables/useCheckout';
 import { usePaymentAccount } from '../../src/composables/usePaymentAccount';
 import { S3_CONFIG } from '../../src/config/api-endpoints';
 
@@ -38,6 +39,7 @@ export default function CartScreen() {
   // Local State
   const [topUpVisible, setTopUpVisible] = useState(false);
   const [redeemCode, setRedeemCode] = useState('');
+  const { setCheckoutData } = useCheckout();
 
   // 每次进入页面刷新数据
   useFocusEffect(
@@ -67,6 +69,8 @@ export default function CartScreen() {
       Alert.alert('Oops', 'Please select at least one item');
       return;
     }
+    const selectedItems = cartItems.filter(item => item.selected);
+    setCheckoutData(selectedItems, priceEstimate || null);
     router.push('/checkout');
   };
 
