@@ -1,25 +1,41 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'; // 👈 1. 引入 Stack
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator, Alert, Image,
+    Modal,
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { createComment } from '../../src/api/comment';
 import { getOrderDetail, type OrderDetail } from '../../src/api/order';
 import { getProductDetail } from '../../src/api/product';
+import { useImageUpload } from '../../src/composables/useImageUpload';
 import { S3_CONFIG } from '../../src/config/api-endpoints';
 
 export default function OrderDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [currentReviewItem, setCurrentReviewItem] = useState<any>(null);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    content: '',
+    isAnonymous: false,
+    images: [] as string[] // 存 S3 返回的 image_id
+  });
+  
+  const { uploading, uploadAvatar } = useImageUpload(); 
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -80,6 +96,73 @@ export default function OrderDetailScreen() {
       return 'https://via.placeholder.com/80';
     }
   };
+  // 打开评价弹窗
+  const openReviewDialog = (item: any) => {
+    setCurrentReviewItem(item);
+    setReviewForm({ rating: 5, content: '', isAnonymous: false, images: [] });
+    setReviewModalVisible(true);
+  };
+
+  // 挑选并上传图片
+  const pickAndUploadImage = async () => {
+    if (reviewForm.images.length >= 3) {
+      Alert.alert('Limit Reached', 'You can only upload up to 3 photos.');
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8, // 压缩一下质量
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      try {
+        const fileUri = result.assets[0].uri;
+        // 调用你的 hook 进行上传
+        const imageId = await uploadAvatar(fileUri);
+        setReviewForm(prev => ({ ...prev, images: [...prev.images, imageId] }));
+      } catch (e) {
+        // useImageUpload 里面已经有错误弹窗了，这里静默 catch 即可
+      }
+    }
+  };
+
+  // 移除已上传的图片
+  const removeImage = (index: number) => {
+    setReviewForm(prev => {
+      const newImages = [...prev.images];
+      newImages.splice(index, 1);
+      return { ...prev, images: newImages };
+    });
+  };
+
+  // 提交评价
+  const submitReview = async () => {
+    if (!reviewForm.content.trim()) {
+      Alert.alert('Required', 'Please write your review.');
+      return;
+    }
+    
+    setSubmittingReview(true);
+    try {
+      // 这里的字段名与你的 Vue 版本保持一致
+      await createComment({
+        content: reviewForm.content,
+        is_anonymous: reviewForm.isAnonymous,
+        pic_info: reviewForm.images, // 发送 image_id 数组
+        productID: currentReviewItem.product_id,
+        stars: reviewForm.rating
+      });
+      
+      Alert.alert('Success', 'Review submitted successfully!');
+      setReviewModalVisible(false);
+    } catch (error: any) {
+      Alert.alert('Error', error.err_msg || 'Failed to submit review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   const getStatusStyle = (statusName: string) => {
     switch (statusName) {
@@ -95,10 +178,6 @@ export default function OrderDetailScreen() {
       default:
         return { bg: '#f3f4f6', text: '#6b7280' };
     }
-  };
-
-  const handleWriteReview = () => {
-    Alert.alert('Notice', 'Review feature is coming soon!');
   };
 
   if (loading) {
@@ -201,7 +280,7 @@ export default function OrderDetailScreen() {
                   <Text style={styles.itemQty}>x {item.quantity}</Text>
                 </View>
                 {isDelivered && (
-                  <TouchableOpacity style={styles.reviewBtn} onPress={handleWriteReview}>
+                  <TouchableOpacity style={styles.reviewBtn} onPress={()=>openReviewDialog(item)}>
                     <Text style={styles.reviewBtnText}>Write a Review</Text>
                   </TouchableOpacity>
                 )}
@@ -241,6 +320,86 @@ export default function OrderDetailScreen() {
         </View>
 
       </ScrollView>
+      <Modal visible={reviewModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Write a Review</Text>
+              <TouchableOpacity onPress={() => setReviewModalVisible(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {/* 星级评分 */}
+              <Text style={styles.inputLabel}>Rating:</Text>
+              <View style={styles.starsContainer}>
+                {[1, 2, 3, 4, 5].map(star => (
+                  <TouchableOpacity key={star} onPress={() => setReviewForm({...reviewForm, rating: star})}>
+                    <Ionicons 
+                      name={star <= reviewForm.rating ? "star" : "star-outline"} 
+                      size={36} color="#c75d35" 
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* 评价内容 */}
+              <Text style={styles.inputLabel}>Review:</Text>
+              <TextInput
+                style={styles.textInput}
+                multiline
+                numberOfLines={4}
+                placeholder="Share your thoughts about this product..."
+                value={reviewForm.content}
+                onChangeText={t => setReviewForm({...reviewForm, content: t})}
+                maxLength={500}
+              />
+
+              {/* 图片上传区域 */}
+              <Text style={styles.inputLabel}>Add Photos (Optional, Max 3):</Text>
+              <View style={styles.imageUploadArea}>
+                {reviewForm.images.map((imageId, index) => (
+                  <View key={index} style={styles.uploadedImageBox}>
+                    {/* 本地预览需要用 S3 拼接显示 */}
+                    <Image source={{ uri: S3_CONFIG.BASE_URL + imageId }} style={styles.uploadedImage} />
+                    <TouchableOpacity style={styles.removeImageBtn} onPress={() => removeImage(index)}>
+                      <Ionicons name="close-circle" size={20} color="#ff4d4f" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                
+                {reviewForm.images.length < 3 && (
+                  <TouchableOpacity style={styles.uploadBtn} onPress={pickAndUploadImage} disabled={uploading}>
+                    {uploading ? (
+                      <ActivityIndicator size="small" color="#c75d35" />
+                    ) : (
+                      <Ionicons name="camera-outline" size={32} color="#c75d35" />
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* 匿名开关 */}
+              <View style={styles.anonymousRow}>
+                <Text style={styles.inputLabel}>Post anonymously</Text>
+                <Switch 
+                  value={reviewForm.isAnonymous} 
+                  onValueChange={v => setReviewForm({...reviewForm, isAnonymous: v})}
+                  trackColor={{ false: "#767577", true: "#c75d35" }}
+                />
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={[styles.submitBtn, (!reviewForm.content.trim() || submittingReview) && styles.submitBtnDisabled]} 
+                onPress={submitReview} disabled={!reviewForm.content.trim() || submittingReview}>
+                {submittingReview ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Submit Review</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -296,4 +455,23 @@ const styles = StyleSheet.create({
   
   btnPrimary: { backgroundColor: '#c75d35', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8, marginTop: 20 },
   btnPrimaryText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderColor: '#eee' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  modalBody: { padding: 20 },
+  inputLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 10, marginTop: 10 },
+  starsContainer: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  textInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, height: 100, textAlignVertical: 'top', fontSize: 15, backgroundColor: '#f9f9f9' },
+  imageUploadArea: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  uploadBtn: { width: 80, height: 80, borderWidth: 1, borderColor: '#c75d35', borderStyle: 'dashed', borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff5f2' },
+  uploadedImageBox: { width: 80, height: 80, borderRadius: 8 },
+  uploadedImage: { width: '100%', height: '100%', borderRadius: 8 },
+  removeImageBtn: { position: 'absolute', top: -5, right: -5, backgroundColor: '#fff', borderRadius: 10 },
+  anonymousRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 20 },
+  modalFooter: { padding: 20, borderTopWidth: 1, borderColor: '#eee', paddingBottom: 40 },
+  submitBtn: { backgroundColor: '#c75d35', padding: 15, borderRadius: 25, alignItems: 'center' },
+  submitBtnDisabled: { opacity: 0.6 },
+  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });
