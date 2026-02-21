@@ -180,9 +180,7 @@ export default function ProfileScreen() {
     if (user?.avatar) {
       // 如果已经是完整链接
       if (user.avatar.startsWith('http')) return { uri: user.avatar };
-      // 如果只是 ID，拼接 S3 地址 (确保 api-endpoints.ts 里导出了 S3_CONFIG)
-      // 如果你没有 S3_CONFIG，请替换为你的实际图片前缀字符串
-      return { uri: `${S3_CONFIG?.BASE_URL || 'http://YOUR_IMAGE_SERVER/'}${user.avatar}` };
+      return { uri: `${S3_CONFIG?.BASE_URL}` };
     }
     return null; 
   };
