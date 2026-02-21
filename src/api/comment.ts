@@ -1,39 +1,31 @@
-import axios from 'axios'
 /**
  * 评论相关 API 函数
  */
-import { request } from './api'
+import apiClient, { request } from './api';
 /**
  * 获取当前用户发布的评论
  */
-export async function getUserComments() {
-  const token = localStorage.getItem('userToken')
-  const res = await axios.get('/api/comment-ms/v1/customer/reviews/user', {
-    headers: {
-      'accept': 'application/json',
-      'authtoken': token || ''
-    }
-  })
-  return res.data
+export async function getUserComments() : Promise<{ status: number, data: Comment[], msg?: string }> {
+  try {
+    const response = await apiClient.get<{status: number, data: Comment[], msg: string}>(
+      '/comment-ms/v1/customer/reviews/user'
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error('Get user comments API error:', error);
+    throw error;
+  }
 }
 /**
  * 点赞评论
  */
 export const likeComment = async (review_id: string): Promise<boolean> => {
-  const token = localStorage.getItem('userToken') || '';
   try {
-    const response = await request.post<{ status: number }>(
-      `/api/comment-ms/v1/customer/reviews/${review_id}/like`,
-      {},
-      {
-        headers: {
-          'auth-token': token,
-          'Content-Type': 'application/json',
-          'accept': 'application/json',
-        },
-      }
+    const response = await apiClient.post<{ status: number }>(
+      `/comment-ms/v1/customer/reviews/${review_id}/like`,
+      {}
     );
-    return response.status === 0;
+    return response.data.status === 0;
   } catch (error) {
     console.error('Like comment API error:', error);
     return false;
