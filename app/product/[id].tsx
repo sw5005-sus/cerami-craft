@@ -67,11 +67,11 @@ export default function ProductDetailScreen() {
   const fetchComments = async () => {
     setCommentsLoading(true);
     try {
-      const hasToken = tokenStorage.get();
+      const hasToken = await tokenStorage.get();
       if (!hasToken) {
         console.log('🔒 [Dev Mode] No token logic yet, defaulting to Guest view.');
         setCommentsLoading(false);
-        return; // ⛔️ 直接结束，不给后端发请求
+        return; 
       }
       // @ts-ignore
       const res = await getProductComments(parseInt(productId));
