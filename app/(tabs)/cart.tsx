@@ -42,6 +42,7 @@ import { tokenStorage } from '../../src/utils/storage';
     const [topUpVisible, setTopUpVisible] = useState(false);
     const [redeemCode, setRedeemCode] = useState('');
     const { setCheckoutData } = useCheckout();
+    const [isBalanceVisible, setIsBalanceVisible] = useState(false);
 
     // 每次进入页面刷新数据
     useFocusEffect(
@@ -216,7 +217,22 @@ import { tokenStorage } from '../../src/utils/storage';
             {payAccount ? (
               <View>
                 <Text style={styles.accountLabel}>Balance</Text>
-                <Text style={styles.balanceText}>${(payAccount.balance || 0).toFixed(2)}</Text>
+                <View style={styles.balanceRow}>
+                  <Text style={styles.balanceText}>
+                    {isBalanceVisible ? `$${(payAccount.balance || 0).toFixed(2)}` : '****'}
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.eyeBtn} 
+                    onPress={() => setIsBalanceVisible(!isBalanceVisible)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} // 增加点击区域，手残党福音
+                  >
+                    <Ionicons 
+                      name={isBalanceVisible ? "eye-outline" : "eye-off-outline"} 
+                      size={20} 
+                      color="#999" 
+                    />
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.accountNo}>No: {payAccount.account_no}</Text>
               </View>
             ) : (
@@ -334,7 +350,9 @@ import { tokenStorage } from '../../src/utils/storage';
     topUpLink: { color: '#c75d35', fontWeight: 'bold' },
     
     accountLabel: { fontSize: 12, color: '#999', textTransform: 'uppercase' },
-    balanceText: { fontSize: 24, fontWeight: 'bold', color: '#c75d35', marginVertical: 5 },
+    balanceRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 }, 
+    balanceText: { fontSize: 24, fontWeight: 'bold', color: '#c75d35' }, 
+    eyeBtn: { marginLeft: 10, padding: 4 },
     accountNo: { fontSize: 12, color: '#666' },
 
     // Summary

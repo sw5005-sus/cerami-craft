@@ -47,6 +47,8 @@ export default function ProfileScreen() {
   const [topUpLoading, setTopUpLoading] = useState(false);
   const [editNameVisible, setEditNameVisible] = useState(false);
   const [newName, setNewName] = useState('');
+  
+  const [showBalance, setShowBalance] = useState(false);
 
   // 🛡️ 加载数据
   const loadData = async () => {
@@ -103,8 +105,6 @@ export default function ProfileScreen() {
         const imageId = await uploadAvatar(uri);
         
         if (user) {
-           // ✅✅✅ [关键修复] 严格适配你的 UserProfile 接口
-           // 既然 avatar 是 string 必填，我们用 || '' 兜底，防止 undefined 报错
            const updatedProfile: UserProfile = { 
              ...user, 
              avatar: imageId || '' 
@@ -125,7 +125,6 @@ export default function ProfileScreen() {
     if (!newName.trim()) return;
     try {
       if (user) {
-        // ✅✅✅ [关键修复] 同上，确保类型安全
         const updatedProfile: UserProfile = { 
           ...user, 
           name: newName,
@@ -140,12 +139,12 @@ export default function ProfileScreen() {
       Alert.alert('Error', 'Failed to update name');
     }
   };
+
   // === 💰 功能: 充值 ===
   const handleTopUp = async () => {
     if (!redeemCode) return Alert.alert('Error', 'Please enter a code');
     setTopUpLoading(true);
     try {
-      // 现在的 API 不需要再处理返回值的 code，因为 API 层已经处理了 throw error
       await topUpAccount(redeemCode);
       
       Alert.alert('Success', 'Top up successful!');
@@ -251,8 +250,23 @@ export default function ProfileScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>My Wallet</Text>
-            {/* 🚨 注意：balance 已经在 API 层除以 100 了，这里直接显示 */}
-            <Text style={styles.balanceText}>${(payment?.balance || 0).toFixed(2)}</Text>
+            {/* 👁️ 修改：余额加上小眼睛 */}
+            <View style={styles.balanceRow}>
+              <Text style={styles.balanceText}>
+                {showBalance ? `$${(payment?.balance || 0).toFixed(2)}` : '****'}
+              </Text>
+              <TouchableOpacity 
+                style={styles.eyeBtn} 
+                onPress={() => setShowBalance(!showBalance)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons 
+                  name={showBalance ? "eye-outline" : "eye-off-outline"} 
+                  size={20} 
+                  color="#999" 
+                />
+              </TouchableOpacity>
+            </View>
           </View>
           <TouchableOpacity style={styles.menuItem} onPress={() => setTopUpVisible(true)}>
             <View style={styles.menuLeft}>
@@ -375,6 +389,8 @@ const styles = StyleSheet.create({
   userEmail: { fontSize: 14, color: '#888', marginTop: 4 },
   userId: { fontSize: 12, color: '#ccc', marginTop: 2 },
 
+  balanceRow: { flexDirection: 'row', alignItems: 'center' },
+  eyeBtn: { marginLeft: 10, padding: 4 },
   balanceText: { fontSize: 20, fontWeight: 'bold', color: '#c75d35' },
 
   menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
