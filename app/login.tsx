@@ -1,357 +1,122 @@
+import { Ionicons } from '@expo/vector-icons';
+import { exchangeCodeAsync, makeRedirectUri, useAuthRequest, useAutoDiscovery } from 'expo-auth-session';
 import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Image,
-  KeyboardAvoidingView, Platform,
-  ScrollView,
-  StyleSheet,
-  Text, TextInput, TouchableOpacity,
-  View
-} from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-// 引入 API 和 安全存储
-import { activateAccount, login, register } from '../src/api/auth'; // 确保你有这个文件
 import { tokenStorage } from '../src/utils/storage';
 
-const { width, height } = Dimensions.get('window');
+// 必须调用此方法以确保 WebBrowser 认证后能正确关闭弹窗
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
+
+  // 替换为你 Zitadel 控制台里的 Client ID
+  const CLIENT_ID = '这里填你的_ZITADEL_CLIENT_ID'; 
   
-  // === 状态管理 ===
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
-  const [loading, setLoading] = useState(false);
-  
-  // 表单数据
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  
-  // 注册流程状态: 'input' (输入账号密码) -> 'verification' (输入验证码)
-  const [registerStep, setRegisterStep] = useState<'input' | 'verification'>('input');
-  const [verificationCode, setVerificationCode] = useState('');
+  // 利用 useAutoDiscovery 自动获取你的 Zitadel OIDC 配置
+  const discovery = useAutoDiscovery('https://cerami-t6ihrd.us1.zitadel.cloud');
 
-  // === 逻辑处理 ===
+  // 生成回跳 URI (会自动使用 app.json 里的 scheme)
+  const redirectUri = makeRedirectUri({
+    scheme: 'ceramicraft',
+    path: 'oauthredirect'
+  });
 
-  // 1. 登录逻辑
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
-      return;
-    }
+  // 配置授权请求 (Authorization Code Flow with PKCE)
+  const [request, response, promptAsync] = useAuthRequest(
+    {
+      clientId: CLIENT_ID,
+      scopes: ['openid', 'profile', 'email', 'offline_access'],
+      redirectUri,
+    },
+    discovery
+  );
 
-    setLoading(true);
-    try {
-      const res = await login({ email, password });
-      let token = '';
-      const setCookie = res.headers['set-cookie'];
-
-      if (setCookie && Array.isArray(setCookie) && setCookie.length > 0) {
-        const cookieString = setCookie[0]; // 拿到第一条 cookie
-        const match = cookieString.match(/auth-token=([^;]+)/);
-        if (match && match[1]) {
-          token = match[1];
-          console.log('✅ Extracted Token from Cookie:', token.substring(0, 15) + '...');
-        }
-      }
-      if (token) {
-        // ✅ 关键步骤：存入 SecureStore
-        await tokenStorage.save(token);
+  // 监听浏览器重定向回来的结果
+  useEffect(() => {
+    const handleResponse = async () => {
+      if (response?.type === 'success') {
+        const { code } = response.params;
         
-        Alert.alert('Success', 'Login successful!', [
-          { text: 'OK', onPress: () => router.replace('/(tabs)/profile') } // 登录成功回个人中心
-        ]);
-      } else {
-        throw new Error('No token received');
-      }
-    } catch (error: any) {
-      console.error(error);
-      Alert.alert('Login Failed', error.message || 'Please check your email or password.');
-      
-      // 🚨【开发后门】如果你想在后端挂掉时也能强制登录，取消下面这几行的注释：
-      // await tokenStorage.save('fake-dev-token');
-      // router.replace('/(tabs)/account');
-    } finally {
-      setLoading(false);
-    }
-  };
+        try {
+          // 拿到 Authorization Code 后，去 Zitadel 换取 JWT Token
+          const tokenResult = await exchangeCodeAsync(
+            {
+              clientId: CLIENT_ID,
+              code,
+              redirectUri,
+              extraParams: {
+                code_verifier: request?.codeVerifier || '', // PKCE 核心验证器
+              },
+            },
+            discovery!
+          );
 
-  // 2. 注册第一步：提交邮箱密码
-  const handleRegister = async () => {
-    if (!email || !password) return Alert.alert('Error', 'Please fill all fields');
-    
-    setLoading(true);
-    try {
-      await register({ email, password });
-      Alert.alert('Verification Sent', 'Please check your email for the code.');
-      setRegisterStep('verification'); // 切换到输入验证码界面
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Registration failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 3. 注册第二步：激活账户
-  const handleActivate = async () => {
-    if (verificationCode.length !== 6) return Alert.alert('Error', 'Code must be 6 digits');
-
-    setLoading(true);
-    try {
-      await activateAccount({ code: verificationCode });
-      Alert.alert('Success', 'Account activated! Please login.', [
-        { text: 'OK', onPress: () => {
-            setRegisterStep('input');
-            setActiveTab('login'); // 自动切回登录 Tab
-            setVerificationCode('');
-        }}
-      ]);
-    } catch (error: any) {
-      Alert.alert('Activation Failed', error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 4. 重发验证码 / 重置
-  const handleRetry = async () => {
-    handleRegister(); // 复用注册逻辑就是重发
-  };
-
-  const handleReset = () => {
-    setRegisterStep('input');
-    setVerificationCode('');
-  };
-
-  // === 渲染界面 ===
-  return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-      style={styles.container}
-    >
-      <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        
-        {/* 1. 顶部图片区域 (对应 Vue 的 login-left) */}
-        <View style={styles.headerImageContainer}>
-          {/* 这里建议放一张本地图片，或者你原来的 headImage.png */}
-          <Image 
-            source={require('../assets/images/icon.png')} 
-            style={styles.headImage}
-            resizeMode="cover"
-          />
-          <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
-            <Text style={styles.closeText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 2. 表单区域 (对应 Vue 的 login-right) */}
-        <View style={styles.formContainer}>
+          console.log('🎉 成功获取 JWT Access Token:', tokenResult.accessToken);
           
-          {/* Tabs */}
-          <View style={styles.tabHeader}>
-            <TouchableOpacity 
-              style={[styles.tabItem, activeTab === 'login' && styles.tabActive]}
-              onPress={() => setActiveTab('login')}
-            >
-              <Text style={[styles.tabText, activeTab === 'login' && styles.tabTextActive]}>Login</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tabItem, activeTab === 'register' && styles.tabActive]}
-              onPress={() => setActiveTab('register')}
-            >
-              <Text style={[styles.tabText, activeTab === 'register' && styles.tabTextActive]}>Register</Text>
-            </TouchableOpacity>
-          </View>
+          // 覆盖原本的旧版 token，现在存的是 Zitadel 颁发的 JWT
+          await tokenStorage.set(tokenResult.accessToken);
+          
+          Alert.alert('Success', 'Logged in successfully!');
+          // 跳转回个人中心或首页
+          router.replace('/(tabs)/profile');
+          
+        } catch (error) {
+          console.error('Token Exchange Error:', error);
+          Alert.alert('Error', 'Failed to exchange token.');
+        }
+      } else if (response?.type === 'error') {
+        Alert.alert('Login Failed', response.error?.message);
+      }
+    };
 
-          {/* Login Form */}
-          {activeTab === 'login' && (
-            <View style={styles.formContent}>
-              <Text style={styles.label}>EMAIL ADDRESS</Text>
-              <TextInput 
-                style={styles.input} 
-                placeholder="Enter your email" 
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-              />
+    if (response && discovery && request) {
+      handleResponse();
+    }
+  }, [response, discovery, request]);
 
-              <Text style={styles.label}>PASSWORD</Text>
-              <TextInput 
-                style={styles.input} 
-                placeholder="Password" 
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="close" size={28} color="#333" />
+        </TouchableOpacity>
+      </View>
 
-              <View style={styles.rowBetween}>
-                <Text style={styles.forgotText}>FORGOT PASSWORD?</Text>
-              </View>
-
-              <TouchableOpacity 
-                style={styles.primaryBtn} 
-                onPress={handleLogin}
-                disabled={loading}
-              >
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>SIGN IN</Text>}
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Register Form */}
-          {activeTab === 'register' && (
-            <View style={styles.formContent}>
-              {/* Step 1: Input */}
-              {registerStep === 'input' && (
-                <>
-                  <Text style={styles.label}>EMAIL ADDRESS</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    placeholder="Enter your email" 
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                  />
-
-                  <Text style={styles.label}>PASSWORD</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    placeholder="At least 8 chars" 
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                  />
-
-                  <TouchableOpacity 
-                    style={styles.primaryBtn} 
-                    onPress={handleRegister}
-                    disabled={loading}
-                  >
-                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>REGISTER</Text>}
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {/* Step 2: Verification */}
-              {registerStep === 'verification' && (
-                <>
-                  <Text style={styles.infoText}>Code sent to: {email}</Text>
-                  
-                  <Text style={styles.label}>VERIFICATION CODE</Text>
-                  <View style={styles.verifyRow}>
-                    <TextInput 
-                      style={[styles.input, { flex: 1 }]} 
-                      placeholder="6-digit code" 
-                      value={verificationCode}
-                      onChangeText={setVerificationCode}
-                      maxLength={6}
-                      keyboardType="number-pad"
-                    />
-                    <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
-                      <Text style={styles.retryText}>RETRY</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <TouchableOpacity 
-                    style={styles.primaryBtn} 
-                    onPress={handleActivate}
-                    disabled={loading}
-                  >
-                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>ACTIVATE ACCOUNT</Text>}
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity onPress={handleReset} style={{marginTop: 15, alignItems:'center'}}>
-                     <Text style={{color: '#999'}}>Start Over</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          )}
-
-          {/* Back to Home Button (Shared) */}
-          <TouchableOpacity 
-             style={styles.secondaryBtn}
-             onPress={() => router.replace('/(tabs)/profile')} // 或者 router.back()
-          >
-            <Text style={styles.secondaryBtnText}>BACK TO HOME</Text>
-          </TouchableOpacity>
-
+      <View style={styles.content}>
+        <View style={styles.logoContainer}>
+          <Ionicons name="shield-checkmark" size={80} color="#c75d35" />
+          <Text style={styles.title}>CeramiCraft IAM</Text>
+          <Text style={styles.subtitle}>Secure login powered by Zitadel</Text>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+        <TouchableOpacity 
+          style={styles.loginBtn} 
+          disabled={!request}
+          onPress={() => promptAsync()}
+        >
+          {!request ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.loginBtnText}>Continue with Zitadel</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  
-  // Header Image
-  headerImageContainer: {
-    height: height * 0.35, // 占屏幕 35%
-    backgroundColor: '#f5e1d0',
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headImage: { width: '100%', height: '100%' },
-  closeBtn: {
-    position: 'absolute', top: 50, right: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)', width: 30, height: 30,
-    borderRadius: 15, justifyContent: 'center', alignItems: 'center'
-  },
-  closeText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-
-  // Form
-  formContainer: {
-    flex: 1,
-    padding: 30,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: -20, // 稍微盖住一点图片，增加设计感
-  },
-  
-  // Tabs
-  tabHeader: { flexDirection: 'row', marginBottom: 30, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  tabItem: { marginRight: 30, paddingBottom: 10 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#c75d35' },
-  tabText: { fontSize: 16, color: '#999', fontWeight: '500' },
-  tabTextActive: { color: '#333', fontWeight: '600' },
-
-  // Inputs
-  formContent: { marginBottom: 20 },
-  label: { fontSize: 12, fontWeight: '600', color: '#333', marginBottom: 8, marginTop: 12 },
-  input: {
-    borderWidth: 1, borderColor: '#ddd', padding: 12, fontSize: 14,
-    borderRadius: 4, backgroundColor: '#fff', height: 48
-  },
-  rowBetween: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10, marginBottom: 20 },
-  forgotText: { fontSize: 12, color: '#c75d35', fontWeight: '600' },
-  infoText: { fontSize: 14, color: '#666', marginBottom: 10, fontStyle: 'italic' },
-
-  // Verify
-  verifyRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  retryBtn: { 
-    backgroundColor: '#6c757d', justifyContent: 'center', alignItems: 'center', 
-    paddingHorizontal: 16, borderRadius: 4, height: 48 
-  },
-  retryText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
-
-  // Buttons
-  primaryBtn: {
-    backgroundColor: '#c75d35', height: 50, borderRadius: 4,
-    justifyContent: 'center', alignItems: 'center', marginTop: 10,
-    shadowColor: '#c75d35', shadowOpacity: 0.3, shadowOffset: {width:0, height:4}
-  },
-  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '600', letterSpacing: 1 },
-  
-  secondaryBtn: {
-    backgroundColor: '#999', height: 50, borderRadius: 4,
-    justifyContent: 'center', alignItems: 'center', marginTop: 10
-  },
-  secondaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '600', letterSpacing: 1 },
+  header: { padding: 20 },
+  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30 },
+  logoContainer: { alignItems: 'center', marginBottom: 60 },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#333', marginTop: 20 },
+  subtitle: { fontSize: 16, color: '#666', marginTop: 10 },
+  loginBtn: { backgroundColor: '#c75d35', width: '100%', padding: 16, borderRadius: 12, alignItems: 'center' },
+  loginBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });
