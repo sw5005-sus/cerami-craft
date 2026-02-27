@@ -15,16 +15,18 @@ export default function LoginScreen() {
   const router = useRouter();
 
   // 替换为你 Zitadel 控制台里的 Client ID
-  const CLIENT_ID = '这里填你的_ZITADEL_CLIENT_ID'; 
+  const CLIENT_ID = '361761429302373082'; 
   
   // 利用 useAutoDiscovery 自动获取你的 Zitadel OIDC 配置
   const discovery = useAutoDiscovery('https://cerami-t6ihrd.us1.zitadel.cloud');
 
   // 生成回跳 URI (会自动使用 app.json 里的 scheme)
   const redirectUri = makeRedirectUri({
-    scheme: 'ceramicraft',
+    scheme: 'cerami-craft',
     path: 'oauthredirect'
   });
+  // 👇 加这一行
+  console.log('🔗 Expo 真实的 Redirect URI 是:', redirectUri);
 
   // 配置授权请求 (Authorization Code Flow with PKCE)
   const [request, response, promptAsync] = useAuthRequest(
