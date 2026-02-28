@@ -23,7 +23,7 @@ export default function LoginScreen() {
   // 生成回跳 URI (会自动使用 app.json 里的 scheme)
   const redirectUri = makeRedirectUri({
     scheme: 'cerami-craft',
-    path: 'oauthredirect'
+    path: 'login'
   });
   // 👇 加这一行
   console.log('🔗 Expo 真实的 Redirect URI 是:', redirectUri);
@@ -61,7 +61,7 @@ export default function LoginScreen() {
           console.log('🎉 成功获取 JWT Access Token:', tokenResult.accessToken);
           
           // 覆盖原本的旧版 token，现在存的是 Zitadel 颁发的 JWT
-          await tokenStorage.set(tokenResult.accessToken);
+          await tokenStorage.save(tokenResult.accessToken);
           
           Alert.alert('Success', 'Logged in successfully!');
           // 跳转回个人中心或首页
