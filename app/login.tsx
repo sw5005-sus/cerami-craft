@@ -2,16 +2,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { exchangeCodeAsync, makeRedirectUri, useAuthRequest, useAutoDiscovery } from 'expo-auth-session';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 import { tokenStorage } from '../src/utils/storage';
+
+
+import type { UserProfile } from '../src/types/api';
+
 
 // 必须调用此方法以确保 WebBrowser 认证后能正确关闭弹窗
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
+  const [user, setUser] = useState<UserProfile | null>(null);
   const router = useRouter();
 
   // 替换为你 Zitadel 控制台里的 Client ID
@@ -81,10 +85,57 @@ export default function LoginScreen() {
     }
   }, [response, discovery, request]);
 
+  const handleLogout = async () => {
+    Alert.alert('Logout', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { 
+        text: 'Confirm', 
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            // 1. 构造登出后跳回 App 的地址（必须和 Zitadel 后台配的一模一样）
+            const returnTo = makeRedirectUri({
+              scheme: 'cerami-craft',
+              path: 'login' // 登出后让他回登录页
+            });
+
+            // 2. 拼接 Zitadel 的注销接口 URL
+            const clientId = '361761429302373082'; // 填入你的 RN App Client ID
+            const zitadelDomain = 'https://cerami-t6ihrd.us1.zitadel.cloud'; // 你的 Zitadel 实例地址
+            
+            // OIDC 标准的登出端点
+            const logoutUrl = `${zitadelDomain}/oidc/v1/end_session?client_id=${clientId}&post_logout_redirect_uri=${encodeURIComponent(returnTo)}`;
+
+            // 3. 拉起浏览器，去 Zitadel 服务器上清除 Session Cookie
+            const result = await WebBrowser.openAuthSessionAsync(logoutUrl, returnTo);
+            console.log('🚪 Logout Result:', result);
+
+            // 4. 清理本地沙盒里的 Token 和内存状态
+            await tokenStorage.remove();
+            setUser(null);
+            
+            // (可选) 如果你用了 Expo Router，可以直接 push 回首页或登录页
+            // router.replace('/login');
+            
+          } catch (error) {
+            console.error('Logout failed:', error);
+            Alert.alert('Error', 'Failed to log out properly.');
+          }
+        }
+      }
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/'); 
+          }
+        }}>
           <Ionicons name="close" size={28} color="#333" />
         </TouchableOpacity>
       </View>
@@ -106,6 +157,9 @@ export default function LoginScreen() {
           ) : (
             <Text style={styles.loginBtnText}>Continue with Zitadel</Text>
           )}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleLogout}>
+          <Text>temp Log Out</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

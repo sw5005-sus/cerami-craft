@@ -59,6 +59,7 @@ export default function ProfileScreen() {
       if (!token) {
         setUser(null);
         setLoading(false);
+        router.replace('/login');
         return;
       }
       const [userData, payData] = await Promise.all([
@@ -71,6 +72,7 @@ export default function ProfileScreen() {
       if (error?.code === 401 || error?.response?.status === 401) {
          await tokenStorage.remove();
          setUser(null);
+         router.replace('/login');
       }
     } finally {
       setLoading(false);
@@ -213,24 +215,6 @@ export default function ProfileScreen() {
   };
 
   // ================= 渲染 UI =================
-
-  // 1. Guest Mode (未登录)
-  if (!loading && !user) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.guestContainer}>
-          <View style={styles.guestIconCircle}>
-             <Ionicons name="person" size={60} color="#e0e0e0" />
-          </View>
-          <Text style={styles.guestTitle}>Welcome to CeramiCraft</Text>
-          <Text style={styles.guestSubtitle}>Please login to manage your account.</Text>
-          <TouchableOpacity style={styles.guestLoginBtn} onPress={() => router.push('/login')}>
-            <Text style={styles.guestLoginText}>Login / Register</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   // 2. Member Mode (已登录)
   return (
