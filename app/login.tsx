@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { exchangeCodeAsync, makeRedirectUri, useAuthRequest, useAutoDiscovery } from 'expo-auth-session';
+import { exchangeCodeAsync, makeRedirectUri, refreshAsync, useAuthRequest, useAutoDiscovery } from 'expo-auth-session';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { syncZitadelCallback } from '../src/api/auth';
 import { tokenStorage } from '../src/utils/storage';
 
 
@@ -49,25 +50,45 @@ export default function LoginScreen() {
         const { code } = response.params;
         
         try {
-          // 拿到 Authorization Code 后，去 Zitadel 换取 JWT Token
+          // 1. 换取初次 Token 和 Refresh Token
           const tokenResult = await exchangeCodeAsync(
             {
               clientId: CLIENT_ID,
               code,
               redirectUri,
-              extraParams: {
-                code_verifier: request?.codeVerifier || '', // PKCE 核心验证器
-              },
+              extraParams: { code_verifier: request?.codeVerifier || '' },
             },
             discovery!
           );
 
-          console.log('🎉 成功获取 JWT Access Token:', tokenResult.accessToken);
+          console.log('🎉 拿到初次 Token，准备呼叫后端...');
+
+          // 2. 呼叫后端建档并写入 Metadata
+          await syncZitadelCallback(tokenResult.accessToken)
+          console.log('✅ 后端建档、写 Metadata 成功！');
+
+          // 3. 核心步骤：用 Refresh Token 换取包含 Metadata 的新 Token
+          let finalAccessToken = tokenResult.accessToken; 
           
-          // 覆盖原本的旧版 token，现在存的是 Zitadel 颁发的 JWT
-          await tokenStorage.save(tokenResult.accessToken);
+          if (tokenResult.refreshToken) {
+            console.log('🔄 正在向 Zitadel 申请包含 Metadata 的新 Token...');
+            const refreshedResult = await refreshAsync(
+              {
+                clientId: CLIENT_ID,
+                refreshToken: tokenResult.refreshToken,
+              },
+              discovery!
+            );
+            // 这个 finalAccessToken 就是被我们脚本注入了业务数据的终极 Token
+            finalAccessToken = refreshedResult.accessToken; 
+            console.log('🎉 终极 Token 获取成功！');
+          } else {
+             console.warn('⚠️ Zitadel 没有返回 Refresh Token，请检查控制台 Grant Types 配置！');
+          }
+
+          // 4. 存入本地沙盒，加载业务数据
+          await tokenStorage.save(finalAccessToken);
           
-          Alert.alert('Success', 'Logged in successfully!');
           // 跳转回个人中心或首页
           router.replace('/(tabs)/profile');
           

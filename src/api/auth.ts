@@ -20,6 +20,28 @@ export const login = async (credentials: LoginRequest): Promise<AxiosResponse<Lo
   }
 };
 
+export const syncZitadelCallback = async (initialToken: string) => {
+  try {
+    console.log('🚀 API Request: Zitadel OAuth Callback');
+    
+    // POST 请求，body 为空对象 {}，并在 header 中强制携带初次 Token
+    const response = await apiClient.post(
+      API_ENDPOINTS.USER.OAUTH_CALLBACK, 
+      {}, 
+      {
+        headers: {
+          'Authorization': `Bearer ${initialToken}`
+        }
+      }
+    );
+    console.log(response.data)
+    return response.data; // 直接返回 data 会让业务层更干净
+  } catch (error) {
+    console.error('OAuth callback request failed:', error);
+    throw error;
+  }
+};
+
 // 2. 用户注册
 export const register = async (userInfo: RegisterRequest): Promise<RegisterResponse> => {
   try {
