@@ -30,14 +30,12 @@ export default function LoginScreen() {
     scheme: 'cerami-craft',
     path: 'login'
   });
-  // 👇 加这一行
-  console.log('🔗 Expo 真实的 Redirect URI 是:', redirectUri);
 
   // 配置授权请求 (Authorization Code Flow with PKCE)
   const [request, response, promptAsync] = useAuthRequest(
     {
       clientId: CLIENT_ID,
-      scopes: ['openid', 'profile', 'email', 'offline_access'],
+      scopes: ['openid', 'profile', 'email', 'offline_access', 'urn:zitadel:iam:user:metadata', 'custom:local_userid'],
       redirectUri,
     },
     discovery
