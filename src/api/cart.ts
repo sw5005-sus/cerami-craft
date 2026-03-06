@@ -1,6 +1,6 @@
-import apiClient from './api'
 import { PRODUCT_ENDPOINTS } from '../config/api-endpoints'
-import type { CartResponse, CartData, AddToCartRequest, AddToCartResponse, UpdateCartItemRequest, UpdateCartItemResponse, RemoveCartItemResponse, CartPriceEstimate, CartPriceEstimateResponse } from '../types/api'
+import type { AddToCartRequest, AddToCartResponse, CartData, CartPriceEstimate, CartPriceEstimateResponse, CartResponse, RemoveCartItemResponse, UpdateCartItemRequest, UpdateCartItemResponse } from '../types/api'
+import apiClient from './api'
 
 /**
  * 获取购物车内容
@@ -15,7 +15,7 @@ export const getCart = async (): Promise<CartData> => {
       throw new Error(response.data.err_msg || 'Failed to get cart data')
     }
   } catch (error) {
-    console.error('Get cart failed:', error)
+    console.warn('error Get cart failed:', error)
     throw error
   }
 }
@@ -47,7 +47,7 @@ export const addToCart = async (productId: number, quantity: number = 1): Promis
       throw new Error(response.data.err_msg || 'Failed to add item to cart')
     }
   } catch (error) {
-    console.error('Add to cart failed:', error)
+    console.warn('error Add to cart failed:', error)
     throw error
   }
 }
@@ -63,7 +63,7 @@ export const updateCartItem = async (itemId: number, updateData: UpdateCartItemR
       throw new Error(response.data.err_msg || 'Failed to update cart item')
     }
   } catch (error) {
-    console.error('Update cart item failed:', error)
+    console.warn('error Update cart item failed:', error)
     throw error
   }
 }
@@ -79,7 +79,7 @@ export const removeFromCart = async (itemId: number): Promise<void> => {
       throw new Error(response.data.err_msg || 'Failed to remove item from cart')
     }
   } catch (error) {
-    console.error('Remove from cart failed:', error)
+    console.warn('error Remove from cart failed:', error)
     throw error
   }
 }
@@ -95,7 +95,7 @@ export const toggleCartItemSelection = async (itemId: number, updateData: Update
       throw new Error(response.data.err_msg || 'Failed to toggle item selection')
     }
   } catch (error) {
-    console.error('Toggle cart item selection failed:', error)
+    console.warn('error Toggle cart item selection failed:', error)
     throw error
   }
 }
@@ -111,7 +111,7 @@ export const clearCart = async (): Promise<void> => {
       throw new Error(response.data.err_msg || 'Failed to clear cart')
     }
   } catch (error) {
-    console.error('Clear cart failed:', error)
+    console.warn('error Clear cart failed:', error)
     throw error
   }
 }
@@ -129,7 +129,7 @@ export const getCartPriceEstimate = async (): Promise<CartPriceEstimate> => {
       throw new Error(response.data.err_msg || 'Failed to get cart price estimate')
     }
   } catch (error) {
-    console.error('Get cart price estimate failed:', error)
+    console.warn('error Get cart price estimate failed:', error)
     throw error
   }
 }
