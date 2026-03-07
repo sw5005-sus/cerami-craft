@@ -63,7 +63,7 @@ export const getPayAccountSelf = async (): Promise<PayAccountInfo> => {
       throw new Error(response.data.err_msg || 'Failed to get payment account info')
     }
   } catch (error) {
-    console.error('Get payment account failed:', error)
+    console.warn('error Get payment account failed:', error)
     throw error
   }
 }

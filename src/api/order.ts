@@ -148,7 +148,7 @@ export const createOrder = async (orderData: CreateOrderRequest): Promise<string
       throw new Error(response.msg || response.error || 'Failed to create order')
     }
   } catch (error) {
-    console.error('Create order API error:', error)
+    console.warn('error Create order API error:', error)
     throw error
   }
 }
@@ -170,7 +170,7 @@ export const getOrderList = async (params: OrderListRequest): Promise<{ orders: 
       throw new Error(response.msg || response.error || 'Failed to get order list')
     }
   } catch (error) {
-    console.error('Get order list API error:', error)
+    console.warn('error Get order list API error:', error)
     throw error
   }
 }
@@ -192,7 +192,7 @@ export const getOrderDetail = async (orderNo: string): Promise<OrderDetail> => {
       throw new Error(response.msg || response.error || 'Failed to get order detail')
     }
   } catch (error) {
-    console.error('Get order detail API error:', error)
+    console.warn('error Get order detail API error:', error)
     throw error
   }
 }
@@ -212,7 +212,7 @@ export const confirmDelivery = async (orderNo: string): Promise<void> => {
       throw new Error(response.msg || response.error || 'Failed to confirm delivery')
     }
   } catch (error) {
-    console.error('Confirm delivery API error:', error)
+    console.warn('error Confirm delivery API error:', error)
     throw error
   }
 }

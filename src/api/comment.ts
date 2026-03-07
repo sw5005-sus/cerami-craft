@@ -12,7 +12,7 @@ export async function getUserComments() : Promise<{ status: number, data: Commen
     );
     return response.data;
   } catch (error: any) {
-    console.error('Get user comments API error:', error);
+    console.warn('error Get user comments API error:', error);
     throw error;
   }
 }
@@ -27,7 +27,7 @@ export const likeComment = async (review_id: string): Promise<boolean> => {
     );
     return response.data.status === 0;
   } catch (error) {
-    console.error('Like comment API error:', error);
+    console.warn('error Like comment API error:', error);
     return false;
   }
 };
@@ -104,7 +104,7 @@ export const getProductComments = async (productId: number): Promise<{ comments:
       throw new Error(response.msg || response.error || 'Failed to get product comments')
     }
   } catch (error) {
-    //console.error('Get product comments API error:', error)
+    //console.warn('error Get product comments API error:', error)
     throw error
   }
 }
@@ -126,7 +126,7 @@ export const createComment = async (commentData: CreateCommentRequest): Promise<
       throw new Error(response.msg || response.error || 'Failed to create comment')
     }
   } catch (error) {
-    console.error('Create comment API error:', error)
+    console.warn('error Create comment API error:', error)
     throw error
   }
 }

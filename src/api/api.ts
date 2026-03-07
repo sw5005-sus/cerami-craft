@@ -40,7 +40,7 @@ const createApiInstance = (): AxiosInstance => {
           console.log('🔥🔥🔥 [END DEBUG] 🔥🔥🔥');
         }
       } catch (e) {
-        console.error('Error fetching token', e);
+        console.warn('error Error fetching token', e);
       }
       
       console.log('API Request:', {
@@ -51,7 +51,7 @@ const createApiInstance = (): AxiosInstance => {
       return config;
     },
     (error) => {
-      console.error('Request Error:', error);
+      console.warn('error Request Error:', error);
       return Promise.reject(error);
     }
   );

@@ -16,7 +16,7 @@ export const tokenStorage = {
         await SecureStore.setItemAsync(TOKEN_KEY, token);
       }
     } catch (e) {
-      console.error('Save token failed:', e);
+      console.warn('error Save token failed:', e);
     }
   },
 
@@ -31,7 +31,7 @@ export const tokenStorage = {
         return await SecureStore.getItemAsync(TOKEN_KEY);
       }
     } catch (e) {
-      console.error('Get token failed:', e);
+      console.warn('error Get token failed:', e);
       return null;
     }
   },
@@ -47,7 +47,7 @@ export const tokenStorage = {
         await SecureStore.deleteItemAsync(TOKEN_KEY);
       }
     } catch (e) {
-      console.error('Remove token failed:', e);
+      console.warn('error Remove token failed:', e);
     }
   }
 };

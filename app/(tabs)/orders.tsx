@@ -26,6 +26,7 @@ export default function OrdersScreen() {
   const fetchOrders = async () => {
     try {
       const token = await tokenStorage.get();
+      console.log('【【【【token】】】】', token)
       if (!token) {
         setIsLoggedIn(false);
         setLoading(false);
@@ -37,9 +38,9 @@ export default function OrdersScreen() {
       const response = await getOrderList({ limit: 20, offset: 0 });
       setOrders(response.orders || []);
     } catch (error: any) {
-      console.log('Failed to fetch orders:', error);
+      console.warn('error Failed to fetch orders:', error);
       if (error.code === 401 || error?.response?.status === 401) {
-        setIsLoggedIn(false);
+        //setIsLoggedIn(false);
       } else {
         Alert.alert('Error', error.err_msg || error.message || 'Failed to load orders');
       }

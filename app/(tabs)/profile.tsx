@@ -57,12 +57,15 @@ export default function ProfileScreen() {
         router.replace('/login');
         return;
       }
-      const [userData, payData] = await Promise.all([
-        getUserProfile(),
-        getPayAccountSelf()
-      ]);
+      const userData = await getUserProfile();
       setUser(userData);
-      setPayment(payData);
+      try {
+        const payData = await getPayAccountSelf();
+        setPayment(payData);
+      } catch (payError: any) {
+        console.warn('获取支付信息失败，但保持登录状态:', payError?.message || payError);
+        setPayment(null); 
+      }
     } catch (error: any) {
       if (error?.code === 401 || error?.response?.status === 401) {
          await tokenStorage.remove();
@@ -191,7 +194,7 @@ export default function ProfileScreen() {
             // router.replace('/login');
             
           } catch (error) {
-            console.error('Logout failed:', error);
+            console.warn('error Logout failed:', error);
             Alert.alert('Error', 'Failed to log out properly.');
           }
         }

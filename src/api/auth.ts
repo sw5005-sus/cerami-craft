@@ -15,7 +15,7 @@ export const login = async (credentials: LoginRequest): Promise<AxiosResponse<Lo
     });
     return response;
   } catch (error) {
-    console.error('Login request failed:', error);
+    console.warn('error Login request failed:', error);
     throw error;
   }
 };
@@ -37,7 +37,7 @@ export const syncZitadelCallback = async (initialToken: string) => {
     console.log(response.data)
     return response.data; // 直接返回 data 会让业务层更干净
   } catch (error) {
-    console.error('OAuth callback request failed:', error);
+    console.warn('error OAuth callback request failed:', error);
     throw error;
   }
 };
@@ -57,7 +57,7 @@ export const register = async (userInfo: RegisterRequest): Promise<RegisterRespo
     const response = await request.post<RegisterResponse>(API_ENDPOINTS.USER.REGISTER, data);
     return response;
   } catch (error) {
-    console.error('Registration request failed:', error);
+    console.warn('error Registration request failed:', error);
     throw error;
   }
 };
@@ -68,7 +68,7 @@ export const activateAccount = async (activateInfo: ActivateRequest): Promise<Ac
     const response = await request.put<ActivateResponse>(API_ENDPOINTS.USER.ACTIVATE, activateInfo);
     return response;
   } catch (error) {
-    console.error('Activation request failed:', error);
+    console.warn('error Activation request failed:', error);
     throw error;
   }
 };
@@ -78,7 +78,7 @@ export const logout = async (): Promise<void> => {
   try {
     await request.post(API_ENDPOINTS.USER.LOGOUT);
   } catch (error) {
-    console.error('Logout API failed:', error);
+    console.warn('error Logout API failed:', error);
     throw error;
   }
 };

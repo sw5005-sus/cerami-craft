@@ -40,7 +40,7 @@ export const useCart = () => {
         setPriceEstimate(null);
       }
     } catch (error: any) {
-      console.error('Load cart failed:', error);
+      console.warn(' Load cart failed:', error);
     } finally {
       setLoading(false);
     }

@@ -91,7 +91,7 @@ export default function LoginScreen() {
           router.replace('/(tabs)/profile');
           
         } catch (error) {
-          console.error('Token Exchange Error:', error);
+          console.warn('error Token Exchange Error:', error);
           Alert.alert('Error', 'Failed to exchange token.');
         }
       } else if (response?.type === 'error') {
@@ -137,7 +137,7 @@ export default function LoginScreen() {
             // router.replace('/login');
             
           } catch (error) {
-            console.error('Logout failed:', error);
+            console.warn('error Logout failed:', error);
             Alert.alert('Error', 'Failed to log out properly.');
           }
         }

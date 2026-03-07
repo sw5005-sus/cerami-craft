@@ -1,5 +1,5 @@
-import { request } from './api';
 import { API_ENDPOINTS } from '../config/api-endpoints';
+import { request } from './api';
 
 // 商品列表查询参数接口
 export interface ProductListParams {
@@ -83,7 +83,7 @@ export const getProductList = async (params: ProductListParams = {}): Promise<Pr
     
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch product list:', error);
+    console.warn('error Failed to fetch product list:', error);
     throw error;
   }
 };
@@ -154,7 +154,7 @@ export const getProductDetail = async (id: number | string): Promise<Product> =>
     
     return response.data;
   } catch (error) {
-    console.error('Failed to fetch product detail:', error);
+    console.warn('error Failed to fetch product detail:', error);
     throw error;
   }
 };

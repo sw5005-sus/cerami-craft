@@ -17,7 +17,7 @@ export const usePaymentAccount = () => {
       setPayAccount(data);
       console.log('Payment account loaded:', data);
     } catch (err: any) {
-      console.error('Failed to load payment account:', err);
+      console.warn('error Failed to load payment account:', err);
       
       // ✅ 复刻原版的错误处理逻辑
       let errorMsg = 'Failed to load payment account';

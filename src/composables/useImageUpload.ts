@@ -57,7 +57,7 @@ export const useImageUpload = () => {
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to upload image';
       Alert.alert('Upload Error', errorMessage);
-      console.error('Upload avatar error:', error);
+      console.warn('error Upload avatar error:', error);
       throw error;
     } finally {
       setUploading(false);
