@@ -81,7 +81,8 @@ export const useCart = () => {
       await updateCartItem(item.id, requestData);
       loadCart(); 
     } catch (error) {
-      Alert.alert('Error', 'Failed to update quantity');
+      //Alert.alert('Error', 'Failed to update quantity');
+      console.warn('error Failed to update quantity, ', error)
     }
   };
 
