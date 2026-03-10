@@ -171,7 +171,7 @@ export default function ProfileScreen() {
           try {
             // 1. 构造登出后跳回 App 的地址（必须和 Zitadel 后台配的一模一样）
             const returnTo = makeRedirectUri({
-              scheme: 'cerami-craft',
+              scheme: 'ceramicraft',
               path: 'login' // 登出后让他回登录页
             });
 

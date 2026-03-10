@@ -27,9 +27,10 @@ export default function LoginScreen() {
 
   // 生成回跳 URI (会自动使用 app.json 里的 scheme)
   const redirectUri = makeRedirectUri({
-    scheme: 'cerami-craft',
+    scheme: 'ceramicraft',
     path: 'login'
   });
+  console.log('🔗 Expo 真实的 Redirect URI 是:', redirectUri);
 
   // 配置授权请求 (Authorization Code Flow with PKCE)
   const [request, response, promptAsync] = useAuthRequest(
@@ -114,7 +115,7 @@ export default function LoginScreen() {
           try {
             // 1. 构造登出后跳回 App 的地址（必须和 Zitadel 后台配的一模一样）
             const returnTo = makeRedirectUri({
-              scheme: 'cerami-craft',
+              scheme: 'ceramicraft',
               path: 'login' // 登出后让他回登录页
             });
 
