@@ -1,5 +1,5 @@
 // 你的后端 HTTPS 地址
-export const BASE_URL = 'http://18.140.49.89:80';
+export const BASE_URL = 'https://api.ntdoc.site';
 
 /**
  * API 端点配置文件
