@@ -8,7 +8,8 @@ import {
   FlatList, Image,
   SafeAreaView,
   StyleSheet,
-  Text, TextInput, TouchableOpacity,
+  Text,
+  TouchableOpacity,
   View
 } from 'react-native';
 
@@ -180,24 +181,6 @@ const getFirstImage = (picInfo: string): string => {
         onSearch={fetchProducts}
         // 首页不需要返回按钮，所以不传 showBack
       />
-
-      {/* === 顶部搜索栏 === */}
-      <View style={styles.header}>
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Enter product name"
-            placeholderTextColor="#999"
-            value={searchKeyword}
-            onChangeText={setSearchKeyword}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-          />
-          <TouchableOpacity onPress={handleSearch} style={styles.searchIconBtn}>
-            <Ionicons name="search" size={20} color="#666" />
-          </TouchableOpacity>
-        </View>
-      </View>
 
       {/* === 筛选控制栏 === */}
       <View style={styles.controls}>
