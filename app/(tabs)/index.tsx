@@ -43,9 +43,9 @@ export default function HomeScreen() {
   // === 选项定义 ===
   const categories = [
     { value: '', label: 'All Products' },
-    { value: '餐具', label: 'Tableware' },
-    { value: '家居装饰', label: 'Home Decoration' },
-    { value: '容器', label: 'Containers' }
+    { value: 'ceramics', label: 'ceramics' },
+    { value: 'pottery', label: 'pottery' },
+    { value: 'vases', label: 'vases' }
   ];
 
   const sortOptions = [
