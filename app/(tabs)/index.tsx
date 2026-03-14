@@ -124,6 +124,7 @@ const getFirstImage = (picInfo: string): string => {
       setProducts(list);
     } catch (err: any) {
       console.error("Pinning拦截真相: " + err);
+      console.error("Pinning拦截真相:", JSON.stringify(err, null, 2))
       setError(err.message || 'Failed to fetch');
     } finally {
       setLoading(false);
