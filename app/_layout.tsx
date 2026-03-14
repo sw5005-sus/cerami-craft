@@ -1,31 +1,27 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Stack } from 'expo-router';
-import { useEffect } from 'react';
 import { initializeSslPinning } from 'react-native-ssl-public-key-pinning';
 
-export default function Layout() {
-  useEffect(() => {
-    const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+if (!isExpoGo) {
+  initializeSslPinning({
+    'api.ntdoc.site': { // 锁定你的核心 API 域名
+      includeSubdomains: true, 
+      publicKeyHashes: [
+        'sha256/W+o1IWvuIGMIHHGxS//Ur6Huo80ZFKN5uT/ZmaJWaZM=', 
+        'sha256/AlSQhgtJirc8ahLyekmtX+Iw+v46yPYRLJt9Cq1GlB0=', // R12
+        // 'sha256/备用哈希值=====================', // 强烈建议以后加上备用指纹防翻车
+      ],
+    },
+  }).then(() => {
+    console.log('🔒 SSL Pinning 初始化成功，网络通道已锁定！');
+  }).catch(err => {
+    console.error('🚨 SSL Pinning 初始化失败:', err);
+  });
+}
 
-    if (isExpoGo) {
-      console.log('⚠️ 当前处于 Expo Go 环境，已自动跳过 SSL Pinning 验证');
-      return; 
-    }
-    initializeSslPinning({
-      'api.ntdoc.site': { // 锁定你的核心 API 域名
-        includeSubdomains: true, 
-        publicKeyHashes: [
-          'sha256/W+o1IWvuIGMIHHGxS//Ur6Huo80ZFKN5uT/ZmaJWaZM=', 
-          'sha256/C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=', // 👈 新增：Let's Encrypt 全球根证书 (ISRG Root X1)
-          // 'sha256/备用哈希值=====================', // 强烈建议以后加上备用指纹防翻车
-        ],
-      },
-    }).then(() => {
-      console.log('🔒 SSL Pinning 初始化成功，网络通道已锁定！');
-    }).catch(err => {
-      console.error('🚨 SSL Pinning 初始化失败:', err);
-    });
-  }, []); 
+
+export default function Layout() {
   return (
     <Stack
       screenOptions={{
