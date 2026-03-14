@@ -16,6 +16,7 @@ export default function Layout() {
         includeSubdomains: true, 
         publicKeyHashes: [
           'sha256/W+o1IWvuIGMIHHGxS//Ur6Huo80ZFKN5uT/ZmaJWaZM=', 
+          'sha256/C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=', // 👈 新增：Let's Encrypt 全球根证书 (ISRG Root X1)
           // 'sha256/备用哈希值=====================', // 强烈建议以后加上备用指纹防翻车
         ],
       },

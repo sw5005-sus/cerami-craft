@@ -123,6 +123,7 @@ const getFirstImage = (picInfo: string): string => {
       const list = res.list || []; 
       setProducts(list);
     } catch (err: any) {
+      console.error("Pinning拦截真相: " + err);
       setError(err.message || 'Failed to fetch');
     } finally {
       setLoading(false);
