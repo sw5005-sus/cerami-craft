@@ -32,6 +32,7 @@ export default function MyReviewsScreen() {
         try {
           // 1. 验证 Token
           const token = await tokenStorage.get();
+          console.log('【【【【token】】】】', token)
           if (!token) {
             setIsLoggedIn(false);
             setLoading(false);
@@ -49,7 +50,7 @@ export default function MyReviewsScreen() {
           }
         } catch (error: any) {
           if (error.code === 401 || error?.response?.status === 401) {
-            setIsLoggedIn(false);
+            //setIsLoggedIn(false);
           } else {
             Alert.alert('Error', error.message || 'Failed to load reviews');
           }
@@ -167,9 +168,6 @@ export default function MyReviewsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* 头部 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>My Reviews</Text>
         <Text style={styles.reviewCount}>{reviews.length} reviews</Text>
       </View>
@@ -253,10 +251,10 @@ export default function MyReviewsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fa' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' },
   backBtn: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1a1a1a' },
-  reviewCount: { fontSize: 14, color: '#666' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#1a1a1a' },
+  reviewCount: { fontSize: 16, color: '#666' },
   
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   loadingText: { marginTop: 12, color: '#666' },

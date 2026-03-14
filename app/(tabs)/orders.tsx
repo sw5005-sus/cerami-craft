@@ -26,7 +26,6 @@ export default function OrdersScreen() {
   const fetchOrders = async () => {
     try {
       const token = await tokenStorage.get();
-      console.log('【【【【token】】】】', token)
       if (!token) {
         setIsLoggedIn(false);
         setLoading(false);
