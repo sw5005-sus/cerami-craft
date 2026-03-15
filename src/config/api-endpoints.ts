@@ -1,4 +1,3 @@
-// 你的后端 HTTPS 地址
 export const BASE_URL = 'https://api.ntdoc.site';
 
 /**

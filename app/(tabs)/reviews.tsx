@@ -144,9 +144,6 @@ export default function MyReviewsScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
-          </TouchableOpacity>
           <Text style={styles.headerTitle}>My Reviews</Text>
           <View style={{ width: 24 }} />
         </View>
