@@ -8,11 +8,11 @@ if (!isExpoGo) {
     'api.ntdoc.site': { // 锁定你的核心 API 域名
       includeSubdomains: true, 
       publicKeyHashes: [
-        // 完美的叶子证书 (api.ntdoc.site)
+        // leaf (api.ntdoc.site)
           'W+o1IWvuIGMIHHGxS//Ur6Huo80ZFKN5uT/ZmaJWaZM=', 
-          // 服务器真正发过来的 R12 中间证书
+          //  R12 intermediate
           'kZwN96eHtZftBWrOZUsd6cA4es80n3NzSk/XtYz2EqQ=', 
-          // 稳定的终极根证书 (ISRG Root X1)
+          // ISRG Root X1
           'C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=',
         // 'sha256/备用哈希值=====================', // 强烈建议以后加上备用指纹防翻车
       ],
