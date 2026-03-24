@@ -249,9 +249,6 @@ export default function ProfileScreen() {
                 </View>
               </TouchableOpacity>
               <Text style={styles.userEmail}>{user?.email}</Text>
-              
-              {/* ID Display */}
-              <Text style={styles.userId}>ID: {user?.id}</Text>
             </View>
           </View>
         </View>
