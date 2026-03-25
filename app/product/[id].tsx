@@ -140,6 +140,33 @@ export default function ProductDetailScreen() {
       </View>
     );
   };
+  // 递归查找并渲染评论
+  const renderComment = (comment: any, isReply = false) => {
+    // 找出当前评论的所有子回复
+    const replies = comments.filter((c: any) => c.parent_id === comment.id);
+
+    return (
+      <View key={comment.id} style={[styles.reviewItem, isReply && styles.replyItem]}>
+        <View style={styles.reviewHeaderRow}>
+          <Text style={styles.reviewerName}>
+            {comment.is_anonymous ? 'Anonymous' : `User ${comment.user_id}`}
+            {isReply && <Text style={styles.replyBadge}> (商家回复)</Text>}
+          </Text>
+          {/* 回复一般不显示星星，只在根评论显示 */}
+          {!isReply && renderStars(comment.stars)}
+        </View>
+        <Text style={styles.reviewDate}>{new Date(comment.created_at).toLocaleDateString()}</Text>
+        <Text style={styles.reviewContent}>{comment.content}</Text>
+        
+        {/* 递归渲染子回复，加个缩进容器 */}
+        {replies.length > 0 && (
+          <View style={styles.repliesContainer}>
+            {replies.map(reply => renderComment(reply, true))}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   // === 页面渲染 ===
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#c75d35" /></View>;
@@ -233,21 +260,10 @@ export default function ProductDetailScreen() {
             </View>
           )}
 
-          {/* 普通评论列表 (只显示前3条，或者全部) */}
-          {comments.map((comment) => (
-            <View key={comment.id} style={styles.reviewItem}>
-              <View style={styles.reviewHeaderRow}>
-                <Text style={styles.reviewerName}>
-                    {comment.is_anonymous ? 'Anonymous' : `User ${comment.user_id}`}
-                </Text>
-                {renderStars(comment.stars)}
-              </View>
-              <Text style={styles.reviewDate}>{new Date(comment.created_at).toLocaleDateString()}</Text>
-              <Text style={styles.reviewContent}>{comment.content}</Text>
-              
-              {/* 这里可以继续递归渲染 replies，如果需要的话 */}
-            </View>
-          ))}
+          {/* 普通评论列表 (展示层级) */}
+          {comments
+            .filter(c => !c.parent_id || c.parent_id === '0' || c.parent_id === '')
+            .map((rootComment) => renderComment(rootComment))}
           
           {comments.length === 0 && !pinnedReview && (
             <Text style={styles.emptyText}>No reviews yet.</Text>
@@ -382,4 +398,24 @@ const styles = StyleSheet.create({
   cartBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   buyBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
   disabledBtn: { backgroundColor: '#ccc' },
+  //评论层级样式
+  repliesContainer: { 
+    marginTop: 12, 
+    paddingLeft: 12, 
+    borderLeftWidth: 2, 
+    borderLeftColor: '#f0f0f0',
+    backgroundColor: '#fafafa',
+    paddingTop: 8,
+    borderRadius: 4
+  },
+  replyItem: { 
+    borderBottomWidth: 0, 
+    paddingBottom: 4, 
+    marginBottom: 8 
+  },
+  replyBadge: {
+    color: '#c75d35',
+    fontSize: 12,
+    fontWeight: 'normal'
+  },
 });
