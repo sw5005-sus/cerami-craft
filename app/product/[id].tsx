@@ -144,6 +144,9 @@ export default function ProductDetailScreen() {
   const renderComment = (comment: any, isReply = false) => {
     // 找出当前评论的所有子回复
     const replies = comments.filter((c: any) => c.parent_id === comment.id);
+    
+    // 解析评论里的图片（兼容后端传数组或 JSON 字符串的情况）
+    const commentImages = comment.pic_info ? parsePicInfo(comment.pic_info) : [];
 
     return (
       <View key={comment.id} style={[styles.reviewItem, isReply && styles.replyItem]}>
@@ -152,13 +155,30 @@ export default function ProductDetailScreen() {
             {comment.is_anonymous ? 'Anonymous' : `User ${comment.user_id}`}
             {isReply && <Text style={styles.replyBadge}> (商家回复)</Text>}
           </Text>
-          {/* 回复一般不显示星星，只在根评论显示 */}
           {!isReply && renderStars(comment.stars)}
         </View>
         <Text style={styles.reviewDate}>{new Date(comment.created_at).toLocaleDateString()}</Text>
         <Text style={styles.reviewContent}>{comment.content}</Text>
         
-        {/* 递归渲染子回复，加个缩进容器 */}
+        {/* 📸 新增：评论图片横向滑动展示 */}
+        {commentImages.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.commentImageScroll}>
+            {commentImages.map((img: string, idx: number) => {
+              // 拼接 S3 完整地址
+              const imgUrl = img.startsWith('http') ? img : `${S3_CONFIG.BASE_URL}${img}`;
+              return (
+                <Image 
+                  key={idx} 
+                  source={{ uri: imgUrl }} 
+                  style={styles.commentImage} 
+                  resizeMode="cover"
+                />
+              );
+            })}
+          </ScrollView>
+        )}
+        
+        {/* 递归渲染子回复 */}
         {replies.length > 0 && (
           <View style={styles.repliesContainer}>
             {replies.map(reply => renderComment(reply, true))}
@@ -417,5 +437,19 @@ const styles = StyleSheet.create({
     color: '#c75d35',
     fontSize: 12,
     fontWeight: 'normal'
+  },
+  commentImageScroll: { 
+    flexDirection: 'row', 
+    marginTop: 8, 
+    marginBottom: 4 
+  },
+  commentImage: { 
+    width: 80, 
+    height: 80, 
+    borderRadius: 6, 
+    marginRight: 10, 
+    backgroundColor: '#f5f5f5', // 图片加载前的占位底色
+    borderWidth: 1,
+    borderColor: '#eee'
   },
 });
