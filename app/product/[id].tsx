@@ -86,6 +86,8 @@ export default function ProductDetailScreen() {
 
   // === 辅助逻辑 ===
   const images = product ? parsePicInfo(product.pic_info) : [];
+
+  const rootComments = comments.filter(c => !c.parent_id || c.parent_id === '0' || c.parent_id === '');
   
   // 构造大图 URL
   const getMainImageUrl = () => {
@@ -142,11 +144,23 @@ export default function ProductDetailScreen() {
   };
   // 递归查找并渲染评论
   const renderComment = (comment: any, isReply = false) => {
-    // 找出当前评论的所有子回复
     const replies = comments.filter((c: any) => c.parent_id === comment.id);
     
-    // 解析评论里的图片（兼容后端传数组或 JSON 字符串的情况）
-    const commentImages = comment.pic_info ? parsePicInfo(comment.pic_info) : [];
+    // 🛡️ 终极图片数据清洗：兼容后端的各种奇葩格式
+    let validImages: string[] = [];
+    if (Array.isArray(comment.pic_info)) {
+      validImages = comment.pic_info;
+    } else if (typeof comment.pic_info === 'string' && comment.pic_info.trim() !== '') {
+      try {
+        // 尝试解析 "[...]" 格式的 JSON 字符串
+        validImages = JSON.parse(comment.pic_info);
+      } catch (e) {
+        // 如果解析失败，说明它可能就是一个单张图片的普通字符串
+        validImages = [comment.pic_info];
+      }
+    }
+    // 过滤掉所有不是字符串、或者是空字符串的脏数据 (比如 null, [])
+    validImages = validImages.filter((img: any) => typeof img === 'string' && img.trim() !== '');
 
     return (
       <View key={comment.id} style={[styles.reviewItem, isReply && styles.replyItem]}>
@@ -160,11 +174,10 @@ export default function ProductDetailScreen() {
         <Text style={styles.reviewDate}>{new Date(comment.created_at).toLocaleDateString()}</Text>
         <Text style={styles.reviewContent}>{comment.content}</Text>
         
-        {/* 📸 新增：评论图片横向滑动展示 */}
-        {commentImages.length > 0 && (
+        {/* 📸 修复后的图片渲染 */}
+        {validImages.length > 0 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.commentImageScroll}>
-            {commentImages.map((img: string, idx: number) => {
-              // 拼接 S3 完整地址
+            {validImages.map((img: string, idx: number) => {
               const imgUrl = img.startsWith('http') ? img : `${S3_CONFIG.BASE_URL}${img}`;
               return (
                 <Image 
@@ -187,7 +200,7 @@ export default function ProductDetailScreen() {
       </View>
     );
   };
-
+  
   // === 页面渲染 ===
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#c75d35" /></View>;
   if (error || !product) return <View style={styles.center}><Text>{error || 'Product not found'}</Text></View>;
@@ -261,7 +274,7 @@ export default function ProductDetailScreen() {
         {/* 4. 评论区 */}
         <View style={styles.section}>
           <View style={styles.reviewHeader}>
-            <Text style={styles.sectionTitle}>Reviews ({comments.length})</Text>
+            <Text style={styles.sectionTitle}>Reviews ({rootComments.length})</Text>
             {/* 可以在这里显示平均分 */}
           </View>
 
