@@ -167,7 +167,7 @@ export default function ProductDetailScreen() {
         <View style={styles.reviewHeaderRow}>
           <Text style={styles.reviewerName}>
             {comment.is_anonymous ? 'Anonymous' : `User ${comment.user_id}`}
-            {isReply && <Text style={styles.replyBadge}> (商家回复)</Text>}
+            {isReply && <Text style={styles.replyBadge}> (From Sellers)</Text>}
           </Text>
           {!isReply && renderStars(comment.stars)}
         </View>
@@ -200,7 +200,7 @@ export default function ProductDetailScreen() {
       </View>
     );
   };
-  
+
   // === 页面渲染 ===
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#c75d35" /></View>;
   if (error || !product) return <View style={styles.center}><Text>{error || 'Product not found'}</Text></View>;

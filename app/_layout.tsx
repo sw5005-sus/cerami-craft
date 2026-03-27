@@ -71,25 +71,21 @@ export default function Layout() {
   // 注册前台推送钩子
   useEffect(() => {
     async function setupPushNotifications() {
-      // 申请权限 (iOS 和 Android 13+ 必须)
-      const authStatus = await messaging().requestPermission();
-      const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      const { status } = await Notifications.requestPermissionsAsync();
 
-      if (enabled) {
-        console.log('✅ 用户同意了推送权限');
+      if (status === 'granted') {
+        console.log('✅ 用户真正在系统级别同意了推送权限！');
         try {
-          // 获取发给后端的 Token
           const token = await messaging().getToken();
           console.log('🔥 你的 FCM Token (发给后端对接):', token);
-          // TODO: 调用后端接口，把 token 传过去绑定账号
         } catch (error) {
           console.log('❌ 获取 Token 失败:', error);
         }
+      } else {
+        console.log('⚠️ 用户拒绝了通知权限，或者系统默认拦截了');
+        // 可选：在这里弹个 Alert 引导用户去设置里打开
       }
     }
-
     setupPushNotifications();
 
     // 4. 监听前台消息 (用户正在玩 App 时收到的推送)

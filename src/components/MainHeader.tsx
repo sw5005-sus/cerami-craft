@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 // 1. 引入安全区域库（Expo 默认自带）
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { tokenStorage } from '../../src/utils/storage';
 
 interface MainHeaderProps {
   keyword: string;
@@ -18,6 +19,25 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
   const router = useRouter();
   // 2. 获取当前设备的安全区域距离（比如刘海屏高度）
   const insets = useSafeAreaInsets();
+
+  const handleNotificationPress = async () => {
+    const token = await tokenStorage.get();
+    console.log('token', token)
+    if (!token) {
+      Alert.alert(
+        'Hint', 
+        'Please login first to view messages.', 
+        [
+          { text: 'Cancel', style: 'cancel' }, // 点取消就留在原页，什么都不做
+          { text: 'Login', onPress: () => router.push('/login') } // 点登录才跳转
+        ]
+      );
+      return;
+    }
+
+    // 有登录：直接放行，跳转到消息页
+    router.push('/notifications');
+  };
 
   return (
     <View style={[
@@ -50,8 +70,8 @@ export const MainHeader: React.FC<MainHeaderProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* 以前这里有个人中心按钮，现在因为有底部栏了，建议这里放“消息通知”或者空着 */}
-        <TouchableOpacity style={styles.iconBtn}>
+        {/* 消息通知*/}
+        <TouchableOpacity style={styles.iconBtn} onPress={handleNotificationPress}>
            <Ionicons name="notifications-outline" size={24} color="#333" />
         </TouchableOpacity>
 

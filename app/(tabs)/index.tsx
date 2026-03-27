@@ -123,7 +123,6 @@ const getFirstImage = (picInfo: string): string => {
       const list = res.list || []; 
       setProducts(list);
     } catch (err: any) {
-      console.error("Pinning拦截真相: " + err);
       console.error("Pinning拦截真相:", JSON.stringify(err, null, 2))
       setError(err.message || 'Failed to fetch');
     } finally {
@@ -135,11 +134,6 @@ const getFirstImage = (picInfo: string): string => {
   useEffect(() => {
     fetchProducts();
   }, [sortOrder, selectedCategory]);
-
-  // === 交互处理 ===
-  const handleSearch = () => {
-    fetchProducts();
-  };
 
   const goToDetail = (id: string) => {
     router.push(`/product/${id}`);
