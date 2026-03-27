@@ -1,6 +1,48 @@
+import messaging from '@react-native-firebase/messaging';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
+import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 import { initializeSslPinning } from 'react-native-ssl-public-key-pinning';
+import { tokenStorage } from '../src/utils/storage';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true, 
+    shouldShowList: true,   
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+messaging().setBackgroundMessageHandler(async remoteMessage => {
+  console.log('在后台收到了静默密文推送！', remoteMessage);
+
+  const userToken = await tokenStorage.get();
+  
+  if (!userToken) {
+    console.log('🔒 用户已登出，静默丢弃该推送，绝不展示！');
+    return; 
+  }
+
+  if (!remoteMessage || !remoteMessage.data || !remoteMessage.data.encrypted_payload) {
+    console.log('空数据或格式不对，直接丢弃');
+    return;
+  }
+
+  // TODO: 解密逻辑
+  const decryptedText = "测试解密明文：后台订单状态已更新";
+
+  // 解密成功后，用 expo-notifications 把明文推到系统通知栏
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'CeramiCraft Notification',
+      body: decryptedText, 
+      sound: true,
+    },
+    trigger: null, // null 意味着立刻弹出
+  });
+});
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 if (!isExpoGo) {
@@ -26,6 +68,54 @@ if (!isExpoGo) {
 
 
 export default function Layout() {
+  // 注册前台推送钩子
+  useEffect(() => {
+    async function setupPushNotifications() {
+      // 申请权限 (iOS 和 Android 13+ 必须)
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (enabled) {
+        console.log('✅ 用户同意了推送权限');
+        try {
+          // 获取发给后端的 Token
+          const token = await messaging().getToken();
+          console.log('🔥 你的 FCM Token (发给后端对接):', token);
+          // TODO: 调用后端接口，把 token 传过去绑定账号
+        } catch (error) {
+          console.log('❌ 获取 Token 失败:', error);
+        }
+      }
+    }
+
+    setupPushNotifications();
+
+    // 4. 监听前台消息 (用户正在玩 App 时收到的推送)
+    const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
+      console.log('📱 [前台状态] 收到静默推送:', remoteMessage.data);
+      
+      if (!remoteMessage?.data?.encrypted_payload) return;
+
+      // TODO: 解密逻辑
+      const decryptedText = "测试解密明文：您正在浏览时有新消息！";
+
+      // 前台收到消息，直接在顶部弹横幅提醒
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'CeramiCraft 提醒',
+          body: decryptedText,
+        },
+        trigger: null,
+      });
+    });
+
+    // 组件卸载时清理前台监听器
+    return () => {
+      unsubscribeForeground();
+    };
+  }, []);
   return (
     <Stack
       screenOptions={{

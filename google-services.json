@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "962579355214",
+    "project_id": "ceramicraft-5005",
+    "storage_bucket": "ceramicraft-5005.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:962579355214:android:db7dd6f31ef047a262551f",
+        "android_client_info": {
+          "package_name": "com.SWE5005.ceramicraft"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHFrPcgPo79hlem0ml1OTvfkJ4sxu9bqo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
