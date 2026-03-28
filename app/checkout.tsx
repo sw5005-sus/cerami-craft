@@ -1,17 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert, Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text, TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert, Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text, TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -149,6 +150,36 @@ export default function CheckoutScreen() {
         `Your balance ($${payAccount.balance.toFixed(2)}) is less than the order total ($${totalAmountInDollars.toFixed(2)}). Please top up first.`
       );
       return; // 余额不足，直接 return，不向后端发请求
+    }
+
+    // 🛡️ 新增：物理生物识别 (指纹/FaceID) 支付守卫
+    try {
+      // 检查设备是否支持生物识别，以及是否已录入指纹/面容
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = hasHardware ? await LocalAuthentication.isEnrolledAsync() : false;
+
+      if (hasHardware && isEnrolled) {
+        // 唤起原生验证面板
+        const authResult = await LocalAuthentication.authenticateAsync({
+          promptMessage: `Verify to pay $${totalAmountInDollars.toFixed(2)}`, // 弹窗上显示金额，体验更好
+          cancelLabel: 'Cancel',
+          disableDeviceFallback: false, // 允许密码兜底
+        });
+
+        if (!authResult.success) {
+          // 用户点了取消，或者指纹错误次数过多
+          console.log('🔒 用户取消了指纹验证或验证失败');
+          return; // 核心拦截点：直接中止函数，不往下走！
+        }
+      } else {
+        // 针对没有指纹模块的老手机，或者没录指纹的用户
+        // 生产环境中这里可以替换为弹出一个输入支付密码的 Modal
+        console.log('⚠️ 设备不支持或未录入指纹，直接放行（或降级为密码验证）');
+      }
+    } catch (authError) {
+      console.error('生物识别模块初始化失败:', authError);
+      Alert.alert('Security Error', 'Unable to initialize security check.');
+      return; 
     }
 
     setLoading(true);

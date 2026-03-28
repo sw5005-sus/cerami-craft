@@ -42,7 +42,13 @@
       "expo-secure-store",
       "expo-web-browser",
       "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      "@react-native-firebase/messaging",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "CeramiCraft would like to use Face ID or Touch ID to verify your payment"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
