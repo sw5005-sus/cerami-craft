@@ -65,7 +65,7 @@ export const usePaymentAccount = () => {
         });
       }
       
-      Alert.alert('Success', `Successfully topped up $${result.top_up_amount.toFixed(2)}!`);
+      Alert.alert('Success', `Successfully topped up $${(result.top_up_amount / 100).toFixed(2)}!`);
       return result;
     } catch (err: any) {
       const msg = err.message || 'Failed to top up account';

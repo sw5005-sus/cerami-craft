@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { initializeSslPinning } from 'react-native-ssl-public-key-pinning';
 import { bindPushToken } from '../src/api/notification';
+import { decryptAES_GCM } from '../src/utils/crypto';
 import { tokenStorage } from '../src/utils/storage';
 
 Notifications.setNotificationHandler({
@@ -70,7 +71,6 @@ if (!isExpoGo) {
   });
 }
 
-
 export default function Layout() {
   // 注册前台推送钩子
   useEffect(() => {
@@ -110,20 +110,45 @@ export default function Layout() {
     // 4. 监听前台消息 (用户正在玩 App 时收到的推送)
     const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
       console.log('📱 [前台状态] 收到静默推送:', remoteMessage.data);
-      
-      if (!remoteMessage?.data?.encrypted_payload) return;
+      const pushData = remoteMessage.data;
+      if (!pushData || !pushData.encrypted_payload) return;
 
-      // TODO: 解密逻辑
-      const decryptedText = "测试解密明文：您正在浏览时有新消息！";
+      const { title,  encrypted_payload} = pushData;
 
-      // 前台收到消息，直接在顶部弹横幅提醒
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'CeramiCraft 提醒',
-          body: decryptedText,
-        },
-        trigger: null,
-      });
+      try {
+        const savedAesKey = await AsyncStorage.getItem('PUSH_AES_KEY');
+        if (!savedAesKey) {
+          console.log('⚠️ 本地没有找到 AES 密钥，无法解密！');
+          return;
+        }
+
+        const realData = decryptAES_GCM(encrypted_payload as string, savedAesKey);
+        console.log('🎉 见证奇迹！解密后的核心数据是:', realData);
+
+        // 如果解密出来是个 JSON 字符串，直接解析它
+        if (realData) {
+            try {
+                const parsedData = JSON.parse(realData);
+                console.log('📦 核心业务对象:', parsedData);
+            } catch(e) {
+                // 如果后端传的只是一句纯文本，就 catch 掉不用管
+            }
+        }
+
+
+        // 弹窗展示明文 title
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: title as string || 'CeramiCraft Notification',
+            body: realData || 'You have a new message!',
+            sound: true,
+          },
+          trigger: null,
+        });
+
+      } catch (err) {
+        console.log('推送处理流程出错:', err);
+      }
     });
 
     // 组件卸载时清理前台监听器
