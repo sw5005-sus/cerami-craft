@@ -70,9 +70,7 @@ const createApiInstance = (): AxiosInstance => {
         
         switch (status) {
           case 401:
-            // [关键修改] 不能直接 window.location.href
-            // 我们清除 token，然后抛出错误，让 UI 层去决定跳转到登录页
-            //await AsyncStorage.removeItem('userToken');
+            await tokenStorage.remove();
             console.warn('warn Unauthorized: Token expired or invalid');
             break;
           case 403:
