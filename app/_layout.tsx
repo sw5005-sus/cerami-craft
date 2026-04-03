@@ -22,31 +22,37 @@ Notifications.setNotificationHandler({
 
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('在后台收到了静默密文推送！', remoteMessage);
-
   const userToken = await tokenStorage.get();
-  
   if (!userToken) {
     console.log('🔒 用户已登出，静默丢弃该推送，绝不展示！');
     return; 
   }
 
-  if (!remoteMessage || !remoteMessage.data || !remoteMessage.data.encrypted_payload) {
-    console.log('空数据或格式不对，直接丢弃');
-    return;
+  const pushData = remoteMessage.data;
+  if (!pushData || !pushData.encrypted_payload) return;
+  const { title,  encrypted_payload} = pushData;
+  try {
+    const savedAesKey = await AsyncStorage.getItem('PUSH_AES_KEY');
+    if (!savedAesKey) {
+      console.log('⚠️ 本地没有找到 AES 密钥，无法解密！');
+      return;
+    }
+
+    const realData = decryptAES_GCM(encrypted_payload as string, savedAesKey);
+    console.log('🎉 见证奇迹！解密后的核心数据是:', realData);
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title as string || 'CeramiCraft Notification',
+        body: realData || 'You have a new message!',
+        sound: true,
+      },
+      trigger: null,
+    });
+
+  } catch (err) {
+    console.log('推送处理流程出错:', err);
   }
-
-  // TODO: 解密逻辑
-  const decryptedText = "测试解密明文：后台订单状态已更新";
-
-  // 解密成功后，用 expo-notifications 把明文推到系统通知栏
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'CeramiCraft Notification',
-      body: decryptedText, 
-      sound: true,
-    },
-    trigger: null, // null 意味着立刻弹出
-  });
 });
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -87,11 +93,17 @@ export default function Layout() {
           } else if (Platform.OS === 'ios') {
             deviceId = await Application.getIosIdForVendorAsync() || 'unknown-ios-device';
           }
+
           const requestData = {
-            user_id: 0, 
             device_id: deviceId,
             fcm_token: token
           };
+
+          const userToken = await tokenStorage.get();
+          if (!userToken) {
+            console.log('🛑 用户暂未登录，跳过绑定 FCM Token 到后端的步骤。等登录后再绑！');
+            return; 
+          }
 
           const res = await bindPushToken(requestData);
           console.log('🔑 成功拿到后端的 AES 密钥！', res);
@@ -125,18 +137,6 @@ export default function Layout() {
         const realData = decryptAES_GCM(encrypted_payload as string, savedAesKey);
         console.log('🎉 见证奇迹！解密后的核心数据是:', realData);
 
-        // 如果解密出来是个 JSON 字符串，直接解析它
-        if (realData) {
-            try {
-                const parsedData = JSON.parse(realData);
-                console.log('📦 核心业务对象:', parsedData);
-            } catch(e) {
-                // 如果后端传的只是一句纯文本，就 catch 掉不用管
-            }
-        }
-
-
-        // 弹窗展示明文 title
         await Notifications.scheduleNotificationAsync({
           content: {
             title: title as string || 'CeramiCraft Notification',

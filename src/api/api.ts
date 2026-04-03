@@ -34,8 +34,8 @@ const createApiInstance = (): AxiosInstance => {
           console.log(JSON.stringify({
             url: '' + config.baseURL + config.url,
             method: config.method?.toUpperCase(), // POST/GET
-            headers: config.headers, // 重点：让后端看这里面有没有 Authorization
-            body: config.data        // 重点：这里就是你要的参数
+            headers: config.headers, 
+            body: config.data        
           }, null, 2));
           console.log('🔥🔥🔥 [END DEBUG] 🔥🔥🔥');
         }

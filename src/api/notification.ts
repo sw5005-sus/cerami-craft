@@ -3,7 +3,6 @@ import { apiClient } from './api';
 
 // 定义请求参数类型
 export interface BindPushTokenRequest {
-  user_id: number;
   device_id: string;
   fcm_token: string;
 }
