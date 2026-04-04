@@ -27,7 +27,7 @@ export default function OrdersScreen() {
   const fetchOrders = async () => {
     try {
       const token = await tokenStorage.get();
-      const validToken = await isTokenValid(token);
+      const validToken = isTokenValid(token);
       if (!token || !validToken) {
         setIsLoggedIn(false);
         setLoading(false);

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { isTokenValid } from '@/src/utils/auth';
 import { getUserComments, likeComment, type Comment } from '../../src/api/comment';
 import { S3_CONFIG } from '../../src/config/api-endpoints';
 import { tokenStorage } from '../../src/utils/storage';
@@ -32,8 +33,8 @@ export default function MyReviewsScreen() {
         try {
           // 1. 验证 Token
           const token = await tokenStorage.get();
-          console.log('【【【【token】】】】', token)
-          if (!token) {
+          const validToken = isTokenValid(token);
+          if (!token || !validToken) {
             setIsLoggedIn(false);
             setLoading(false);
             return;

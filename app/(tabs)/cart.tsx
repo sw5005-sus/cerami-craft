@@ -18,7 +18,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-  import { useCart } from '../../src/composables/useCart';
+  import { isTokenValid } from '@/src/utils/auth';
+import { useCart } from '../../src/composables/useCart';
 import { useCheckout } from '../../src/composables/useCheckout';
 import { usePaymentAccount } from '../../src/composables/usePaymentAccount';
 import { S3_CONFIG } from '../../src/config/api-endpoints';
@@ -49,7 +50,8 @@ import { tokenStorage } from '../../src/utils/storage';
       useCallback(() => {
         const checkAuthAndLoad = async () => {
         const token = await tokenStorage.get();
-        if (!token) {
+        const validToken = isTokenValid(token);
+        if (!token || !validToken) {
           setIsLoggedIn(false);
           return;
         }
