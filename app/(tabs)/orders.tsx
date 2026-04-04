@@ -1,3 +1,4 @@
+import { isTokenValid } from '@/src/utils/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
@@ -26,7 +27,8 @@ export default function OrdersScreen() {
   const fetchOrders = async () => {
     try {
       const token = await tokenStorage.get();
-      if (!token) {
+      const validToken = isTokenValid(token);
+      if (!token || !validToken) {
         setIsLoggedIn(false);
         setLoading(false);
         setRefreshing(false);
