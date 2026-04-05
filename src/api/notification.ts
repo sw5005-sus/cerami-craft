@@ -16,6 +16,6 @@ export interface BindPushTokenResponse {
  * 绑定 FCM Token 并获取端到端加密的 AES 密钥
  */
 export const bindPushToken = async (data: BindPushTokenRequest): Promise<BindPushTokenResponse> => {
-  const response = await apiClient.post('/notification-ms/v1/push-token', data); 
+  const response = await apiClient.post('/notification-ms/v1/customer/push-token', data); 
   return response.data; 
 };

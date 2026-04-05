@@ -1,13 +1,12 @@
+import { useAuth } from '@/hooks/useAuth';
+import { usePushSync } from '@/hooks/usePushSync';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
-import * as Application from 'expo-application';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
 import { initializeSslPinning } from 'react-native-ssl-public-key-pinning';
-import { bindPushToken } from '../src/api/notification';
 import { decryptAES_GCM } from '../src/utils/crypto';
 import { tokenStorage } from '../src/utils/storage';
 
@@ -78,47 +77,13 @@ if (!isExpoGo) {
 }
 
 export default function Layout() {
-  // 注册前台推送钩子
+  const checkLogin = useAuth((state)=>state.checkLogin);
+  usePushSync();
   useEffect(() => {
-    async function setupPushNotifications() {
-      const { status } = await Notifications.requestPermissionsAsync();
+    checkLogin();
+  }, [checkLogin])
 
-      if (status === 'granted') {
-        console.log('✅ 用户真正在系统级别同意了推送权限！');
-        try {
-          const token = await messaging().getToken();
-          let deviceId = 'unknown-device';
-          if (Platform.OS === 'android') {
-            deviceId = Application.getAndroidId();
-          } else if (Platform.OS === 'ios') {
-            deviceId = await Application.getIosIdForVendorAsync() || 'unknown-ios-device';
-          }
-
-          const requestData = {
-            device_id: deviceId,
-            fcm_token: token
-          };
-
-          const userToken = await tokenStorage.get();
-          if (!userToken) {
-            console.log('🛑 用户暂未登录，跳过绑定 FCM Token 到后端的步骤。等登录后再绑！');
-            return; 
-          }
-
-          const res = await bindPushToken(requestData);
-          console.log('🔑 成功拿到后端的 AES 密钥！', res);
-
-          await AsyncStorage.setItem('PUSH_AES_KEY', res.aes_key);
-        } catch (error) {
-          console.log('❌ 获取 Token 或绑定 失败:', error);
-        }
-      } else {
-        console.log('⚠️ 用户拒绝了通知权限，或者系统默认拦截了');
-        // 可选：在这里弹个 Alert 引导用户去设置里打开
-      }
-    }
-    setupPushNotifications();
-
+  useEffect(() => {
     // 4. 监听前台消息 (用户正在玩 App 时收到的推送)
     const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
       console.log('📱 [前台状态] 收到静默推送:', remoteMessage.data);

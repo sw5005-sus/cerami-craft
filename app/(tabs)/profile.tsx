@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAuth } from '@/hooks/useAuth';
 import { getPayAccountSelf, PayAccountInfo, topUpAccount } from '../../src/api/payment';
 import { getUserProfile, updateUserProfile } from '../../src/api/user';
 import { useImageUpload } from '../../src/composables/useImageUpload';
@@ -29,6 +30,7 @@ import { tokenStorage } from '../../src/utils/storage';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const logout = useAuth((state) => state.logout);
   
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -185,13 +187,8 @@ export default function ProfileScreen() {
             // 3. 拉起浏览器，去 Zitadel 服务器上清除 Session Cookie
             const result = await WebBrowser.openAuthSessionAsync(logoutUrl, returnTo);
             console.log('🚪 Logout Result:', result);
-
-            // 4. 清理本地沙盒里的 Token 和内存状态
-            await tokenStorage.remove();
+            logout();
             setUser(null);
-            
-            // (可选) 如果你用了 Expo Router，可以直接 push 回首页或登录页
-            // router.replace('/login');
             
           } catch (error) {
             console.warn('error Logout failed:', error);

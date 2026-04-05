@@ -122,6 +122,7 @@ export default function ProductDetailScreen() {
       Alert.alert('Success', `Added ${quantity} item(s) to cart`);
     } catch (error) {
       Alert.alert('Error', 'Failed to add to cart. Please login first.');
+      console.log(error)
     } finally {
       setAddingToCart(false);
     }

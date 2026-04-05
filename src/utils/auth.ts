@@ -10,6 +10,7 @@ export const isTokenValid = (token: string | null): boolean => {
     // 预留 60 秒的缓冲期，防止请求在发出去的路上刚好过期
     return decoded.exp > currentTime + 60; 
   } catch (e) {
+    console.log('jwt parse err', e)
     return false; // 解析失败直接当废票处理
   }
 };

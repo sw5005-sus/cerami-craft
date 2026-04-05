@@ -49,7 +49,6 @@ export  const parsePicInfo = (picInfo: string): string[] => {
     const parsed = JSON.parse(picInfo);
     if (Array.isArray(parsed)) {
       const filtered = parsed.filter(item => typeof item === 'string');
-      console.log('parsePicInfo: filtered array:', filtered);
       return filtered;
     } else {
       console.log('parsePicInfo: parsed is not array');
@@ -57,16 +56,11 @@ export  const parsePicInfo = (picInfo: string): string[] => {
   } catch (error) {
     console.log('parsePicInfo: JSON.parse failed:', error);
   }
-  
-  // 如果不是 JSON 数组格式，当作单个文件名
-  console.log('parsePicInfo: treating as single filename:', [picInfo]);
   return [picInfo];
 }
 const getFirstImage = (picInfo: string): string => {
   const images = parsePicInfo(picInfo);
-  console.log('getFirstImage: parsed images:', images);
   const first = images.length > 0 ? images[0] : '';
-  console.log('getFirstImage: first image:', first);
   return first;
 }
 export const getProductImage = (product: Product) => {

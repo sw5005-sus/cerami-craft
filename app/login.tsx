@@ -1,3 +1,4 @@
+import { useAuth } from '@/hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { exchangeCodeAsync, makeRedirectUri, refreshAsync, useAuthRequest, useAutoDiscovery } from 'expo-auth-session';
 import { useRouter } from 'expo-router';
@@ -8,7 +9,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { syncZitadelCallback } from '../src/api/auth';
 import { tokenStorage } from '../src/utils/storage';
 
-
 import type { UserProfile } from '../src/types/api';
 
 
@@ -18,6 +18,7 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const router = useRouter();
+  const setLogin = useAuth((state) => state.setLogin);
 
   // 替换为你 Zitadel 控制台里的 Client ID
   const CLIENT_ID = '361761429302373082'; 
@@ -87,6 +88,7 @@ export default function LoginScreen() {
 
           // 4. 存入本地沙盒，加载业务数据
           await tokenStorage.save(finalAccessToken);
+          setLogin(true);
           
           // 跳转回个人中心或首页
           router.replace('/(tabs)/profile');
