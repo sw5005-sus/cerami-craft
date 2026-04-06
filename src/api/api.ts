@@ -59,7 +59,7 @@ const createApiInstance = (): AxiosInstance => {
   // === 响应拦截器 ===
   instance.interceptors.response.use(
     (response: AxiosResponse) => {
-      console.log('API Response:', response.status, response.headers, response.config.url);
+      console.log('API Response:', response.status, response.data, response.config.url);
       return response;
     },
     async (error) => {

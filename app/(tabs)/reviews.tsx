@@ -14,16 +14,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { isTokenValid } from '@/src/utils/auth';
-import { getUserComments, likeComment, type Comment } from '../../src/api/comment';
+import { getUserComments, type Comment } from '../../src/api/comment'; // 移除了 likeComment
+import { getProductDetail } from '../../src/api/product'; // 引入拉取商品详情接口
+import { getUserProfile } from '../../src/api/user'; // 引入拉取用户信息接口
 import { S3_CONFIG } from '../../src/config/api-endpoints';
 import { tokenStorage } from '../../src/utils/storage';
+
+// 扩展原始的 Comment 类型，加上我们拉取到的产品数据
+interface ReviewWithProduct extends Comment {
+  product_data?: any;
+}
 
 export default function MyReviewsScreen() {
   const router = useRouter();
   
-  const [reviews, setReviews] = useState<Comment[]>([]);
+  const [reviews, setReviews] = useState<ReviewWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [userName, setUserName] = useState<string>(''); // 存储当前用户的真实名字
 
   // 获取数据与未登录拦截
   useFocusEffect(
@@ -41,19 +49,49 @@ export default function MyReviewsScreen() {
           }
           
           setIsLoggedIn(true);
+
+          // 2. 并行拉取用户信息 和 评论列表
+          const [profileRes, commentsRes] = await Promise.all([
+            getUserProfile(),
+            getUserComments()
+          ]);
+
+          // 设置用户名
+          if (profileRes.name) {
+            setUserName(profileRes.name);
+          }
           
-          // 2. 拉取评论数据
-          const res = await getUserComments();
-          if (res.status === 0) {
-            setReviews(res.data || []);
+          // 3. 处理评论列表并拉取每个评论对应的商品信息
+          if (commentsRes.status === 0) {
+            const fetchedReviews = commentsRes.data || [];
+            
+            // 使用 Promise.all 并发获取所有相关的商品详情
+            const reviewsWithProducts = await Promise.all(
+              fetchedReviews.map(async (review: Comment) => {
+                try {
+                  const productRes = await getProductDetail(review.product_id);
+                  return {
+                    ...review,
+                    // 假设 productRes.data 里面包含商品信息，你可以根据实际接口返回结构调整
+                    product_data: productRes
+                  };
+                } catch (e) {
+                  // 如果单个商品信息拉取失败，不影响其他评论展示
+                  console.warn(`获取商品详情失败 productId: ${review.product_id}`);
+                  return { ...review, product_data: null };
+                }
+              })
+            );
+            
+            setReviews(reviewsWithProducts);
           } else {
-            Alert.alert('Error', res.msg || 'Failed to fetch reviews');
+            Alert.alert('Error', commentsRes.msg || 'Failed to fetch reviews');
           }
         } catch (error: any) {
           if (error.code === 401 || error?.response?.status === 401) {
-            //setIsLoggedIn(false);
+            setIsLoggedIn(false);
           } else {
-            Alert.alert('Error', error.message || 'Failed to load reviews');
+            Alert.alert('Error', error.message || 'Failed to load data');
           }
         } finally {
           setLoading(false);
@@ -80,47 +118,8 @@ export default function MyReviewsScreen() {
     });
   };
 
-  // 处理点赞逻辑 (乐观更新 UI)
-  const handleLike = async (comment: Comment) => {
-    // 先在前端更新 UI，让用户立刻看到变化
-    const originalLiked = comment.current_user_liked;
-    
-    setReviews(prevReviews => 
-      prevReviews.map(r => {
-        if (r.id === comment.id) {
-          return {
-            ...r,
-            current_user_liked: !originalLiked,
-            likes: r.likes + (originalLiked ? -1 : 1)
-          };
-        }
-        return r;
-      })
-    );
-
-    // 发起请求
-    const success = await likeComment(comment.id);
-    if (!success) {
-      // 如果后端点赞失败，回滚 UI 状态
-      setReviews(prevReviews => 
-        prevReviews.map(r => {
-          if (r.id === comment.id) {
-            return {
-              ...r,
-              current_user_liked: originalLiked,
-              likes: r.likes + (originalLiked ? 1 : -1)
-            };
-          }
-          return r;
-        })
-      );
-      Alert.alert('Error', 'Failed to like the review.');
-    }
-  };
-
   // 点击跳转到商品详情页
   const goToProduct = (productId: number) => {
-    // 请根据你实际的商品详情页路由路径进行调整
     router.push(`/product/${productId}`);
   };
 
@@ -194,10 +193,22 @@ export default function MyReviewsScreen() {
               activeOpacity={0.8}
               onPress={() => goToProduct(item.product_id)}
             >
+              {/* 商品信息条 (如果拉取到了商品数据) */}
+              {item.product_data && (
+                <View style={styles.productRow}>
+                  <Ionicons name="pricetag-outline" size={14} color="#666" />
+                  <Text style={styles.productName} numberOfLines={1}>
+                    {/* 根据你实际商品数据里的字段修改，通常是 name 或 title */}
+                    {item.product_data.name || `Product #${item.product_id}`}
+                  </Text>
+                  <Ionicons name="chevron-forward-outline" size={14} color="#ccc" style={{ marginLeft: 'auto' }}/>
+                </View>
+              )}
+
               <View style={styles.reviewHeader}>
                 <View style={styles.authorRow}>
                   <Text style={styles.authorName}>
-                    {item.is_anonymous ? 'Anonymous' : `User ${item.user_id}`}
+                    {item.is_anonymous ? 'Anonymous' : (userName || `User ${item.user_id}`)}
                   </Text>
                   {renderStars(item.stars)}
                 </View>
@@ -221,24 +232,6 @@ export default function MyReviewsScreen() {
                   })}
                 </View>
               )}
-
-              {/* 点赞按钮 */}
-              <View style={styles.reviewFooter}>
-                <TouchableOpacity 
-                  style={styles.likeBtn}
-                  onPress={() => handleLike(item)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons 
-                    name={item.current_user_liked ? "heart" : "heart-outline"} 
-                    size={18} 
-                    color={item.current_user_liked ? "#c75d35" : "#666"} 
-                  />
-                  <Text style={[styles.likeCount, item.current_user_liked && styles.likeCountActive]}>
-                    {item.likes}
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </TouchableOpacity>
           )}
         />
@@ -250,7 +243,6 @@ export default function MyReviewsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fa' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' },
-  backBtn: { padding: 5 },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#1a1a1a' },
   reviewCount: { fontSize: 16, color: '#666' },
   
@@ -265,6 +257,11 @@ const styles = StyleSheet.create({
   listContent: { padding: 15, paddingBottom: 40 },
   
   reviewCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 15, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
+  
+  // 新增的商品展示条样式
+  productRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9f9f9', padding: 10, borderRadius: 8, marginBottom: 12, gap: 6 },
+  productName: { fontSize: 13, color: '#555', fontWeight: '500', flex: 1 },
+
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   authorName: { fontSize: 15, fontWeight: '600', color: '#333' },
@@ -273,11 +270,6 @@ const styles = StyleSheet.create({
   
   contentText: { fontSize: 14, color: '#444', lineHeight: 22, marginBottom: 12 },
   
-  imageGallery: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  imageGallery: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   reviewImage: { width: 70, height: 70, borderRadius: 6, backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: '#eee' },
-  
-  reviewFooter: { flexDirection: 'row', justifyContent: 'flex-start', borderTopWidth: 1, borderColor: '#f8f9fa', paddingTop: 10 },
-  likeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  likeCount: { fontSize: 14, color: '#666' },
-  likeCountActive: { color: '#c75d35', fontWeight: 'bold' },
 });
