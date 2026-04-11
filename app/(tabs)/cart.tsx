@@ -2,19 +2,19 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -25,8 +25,23 @@ import { usePaymentAccount } from '../../src/composables/usePaymentAccount';
 import { S3_CONFIG } from '../../src/config/api-endpoints';
 import { tokenStorage } from '../../src/utils/storage';
 
-  export default function CartScreen() {
-    const router = useRouter();
+// 解析图片 URL (简单版)
+const getImageUrl = (picInfo: string) => {
+  try {
+    // 尝试解析 JSON 数组
+    if (picInfo.startsWith('[')) {
+      const arr = JSON.parse(picInfo);
+      if (arr.length > 0) return S3_CONFIG.BASE_URL + arr[0];
+    }
+    // 否则直接拼接
+    return S3_CONFIG.BASE_URL + picInfo;
+  } catch {
+    return 'https://via.placeholder.com/150'; // 兜底图
+  }
+};
+
+export default function CartScreen() {
+  const router = useRouter();
     const [isLoggedIn, setIsLoggedIn] = useState(true);
     
     // Hooks
@@ -63,20 +78,6 @@ import { tokenStorage } from '../../src/utils/storage';
       }, [])
     );
 
-    // 解析图片 URL (简单版)
-    const getImageUrl = (picInfo: string) => {
-      try {
-        // 尝试解析 JSON 数组
-        if (picInfo.startsWith('[')) {
-          const arr = JSON.parse(picInfo);
-          if (arr.length > 0) return S3_CONFIG.BASE_URL + arr[0];
-        }
-        // 否则直接拼接
-        return S3_CONFIG.BASE_URL + picInfo;
-      } catch (e) {
-        return 'https://via.placeholder.com/150'; // 兜底图
-      }
-    };
 
     const handleCheckout = () => {
       if (selectedItemCount === 0) {

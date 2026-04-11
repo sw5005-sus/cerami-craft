@@ -33,7 +33,7 @@ jobs:
         continue-on-error: true
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v2
+        uses: SonarSource/sonarqube-scan-action@aecaf43ae57e412bd97d70ef9ce6076e672fe0a9 # v2
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -42,12 +42,12 @@ jobs:
             -Dsonar.organization=${{ github.repository_owner }}
             -Dsonar.projectKey=cerami-craft
             -Dsonar.sources=app,src,components
-            -Dsonar.exclusions=node_modules/**,coverage/**,dist/**,**/__tests__/**
+            -Dsonar.exclusions=**/node_modules/**,**/coverage/**,coverage/lcov-report/**,**/dist/**,**/__tests__/**,**/*.html,**/*.xml
             -Dsonar.coverage.reportPaths=coverage/coverage-final.json
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
 
       - name: SonarQube Quality Gate
-        uses: SonarSource/sonarqube-quality-gate-action@master
+        uses: SonarSource/sonarqube-quality-gate-action@cb3ed20f9fec62b4c3b8ad9e77656c6adaade913 # master
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
