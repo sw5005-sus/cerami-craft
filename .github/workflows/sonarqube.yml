@@ -39,6 +39,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
+            -Dsonar.organization=${{ github.repository_owner }}
             -Dsonar.projectKey=cerami-craft
             -Dsonar.sources=app,src,components
             -Dsonar.exclusions=node_modules/**,coverage/**,dist/**,**/__tests__/**

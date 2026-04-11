@@ -1,15 +1,15 @@
-import { ref, computed } from 'vue';
-import { getProductList } from '../api/product';
+import { useCallback, useMemo, useState } from 'react';
 import type { Product, ProductListParams } from '../api/product';
+import { getProductList } from '../api/product';
 import { S3_CONFIG } from '../config/api-endpoints';
 
 export function useProductList() {
-  const products = ref<Product[]>([]);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
-  const total = ref(0);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
 
-  const searchParams = ref<ProductListParams>({
+  const [searchParams, setSearchParams] = useState<ProductListParams>({
     keyword: '',
     category: '',
     offset: 0,
@@ -18,7 +18,7 @@ export function useProductList() {
   });
 
   // 解析 pic_info 字符串为数组
-  const parsePicInfo = (picInfo: string): string[] => {
+  const parsePicInfo = useCallback((picInfo: string): string[] => {
     if (!picInfo) return [];
     
     try {
@@ -33,93 +33,91 @@ export function useProductList() {
     
     // 如果不是 JSON 数组格式，当作单个文件名
     return [picInfo];
-  };
+  }, []);
 
   // 获取第一个图片
-  const getFirstImage = (picInfo: string): string => {
+  const getFirstImage = useCallback((picInfo: string): string => {
     const images = parsePicInfo(picInfo);
     return images.length > 0 ? images[0] : '';
-  };
+  }, [parsePicInfo]);
 
   // 获取第一个图片的完整 S3 URL
-  const getFirstImageUrl = (picInfo: string): string => {
+  const getFirstImageUrl = useCallback((picInfo: string): string => {
     const firstImage = getFirstImage(picInfo);
     if (!firstImage) return '';
     if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) return firstImage;
     return `${S3_CONFIG.BASE_URL}${firstImage}`;
-  };
+  }, [getFirstImage]);
 
-  const fetchProducts = async (params: ProductListParams = {}) => {
-    loading.value = true;
-    error.value = null;
+  const fetchProducts = useCallback(async (params: ProductListParams = {}) => {
+    setLoading(true);
+    setError(null);
     
     try {
       const result = await getProductList(params);
-      products.value = result.list;
-      total.value = result.total;
+      setProducts(result.list);
+      setTotal(result.total);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : '获取商品列表失败';
+      setError(err instanceof Error ? err.message : '获取商品列表失败');
       console.error('Fetch products error:', err);
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const searchProductsByKeyword = async (keyword: string) => {
-    searchParams.value.keyword = keyword;
-    searchParams.value.offset = 0;
-    await fetchProducts(searchParams.value);
-  };
+  const searchProductsByKeyword = useCallback(async (keyword: string) => {
+    setSearchParams(prev => ({ ...prev, keyword, offset: 0 }));
+    await fetchProducts({ ...searchParams, keyword, offset: 0 });
+  }, [fetchProducts, searchParams]);
 
-  const filterByCategory = async (category: string) => {
-    searchParams.value.category = category;
-    searchParams.value.offset = 0;
-    await fetchProducts(searchParams.value);
-  };
+  const filterByCategory = useCallback(async (category: string) => {
+    setSearchParams(prev => ({ ...prev, category, offset: 0 }));
+    await fetchProducts({ ...searchParams, category, offset: 0 });
+  }, [fetchProducts, searchParams]);
 
-  const sortProducts = async (orderBy: number) => {
-    searchParams.value.order_by = orderBy;
-    searchParams.value.offset = 0;
-    await fetchProducts(searchParams.value);
-  };
+  const sortProducts = useCallback(async (orderBy: number) => {
+    setSearchParams(prev => ({ ...prev, order_by: orderBy, offset: 0 }));
+    await fetchProducts({ ...searchParams, order_by: orderBy, offset: 0 });
+  }, [fetchProducts, searchParams]);
 
-  const loadMore = async () => {
-    if (loading.value) return;
+  const loadMore = useCallback(async () => {
+    if (loading) return;
     
-    const currentOffset = searchParams.value.offset || 0;
+    const currentOffset = searchParams.offset || 0;
     const newOffset = currentOffset + 10;
     
-    loading.value = true;
+    setLoading(true);
     try {
       const result = await getProductList({
-        ...searchParams.value,
+        ...searchParams,
         offset: newOffset
       });
       
-      products.value.push(...result.list);
-      searchParams.value.offset = newOffset;
-      total.value = result.total;
+      setProducts(prev => [...prev, ...result.list]);
+      setSearchParams(prev => ({ ...prev, offset: newOffset }));
+      setTotal(result.total);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : '加载更多失败';
+      setError(err instanceof Error ? err.message : '加载更多失败');
     } finally {
-      loading.value = false;
+      setLoading(false);
     }
-  };
+  }, [loading, searchParams]);
 
-  const resetSearch = async () => {
-    searchParams.value = {
+  const resetSearch = useCallback(async () => {
+    const defaultParams = {
       keyword: '',
       category: '',
       offset: 0,
       order_by: 0,
       status: ''
     };
+    setSearchParams(defaultParams);
     await fetchProducts();
-  };
+  }, [fetchProducts]);
 
-  const hasMore = computed(() => {
-    return products.value.length < total.value;
-  });
+  const hasMore = useMemo(() => {
+    return products.length < total;
+  }, [products.length, total]);
 
   return {
     products,

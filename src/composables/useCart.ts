@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import {
-  addToCart,
-  clearCart,
-  getCart,
-  getCartPriceEstimate,
-  removeFromCart,
-  updateCartItem
+    addToCart,
+    clearCart,
+    getCart,
+    getCartPriceEstimate,
+    removeFromCart,
+    updateCartItem
 } from '../api/cart';
 import type { CartData, CartItem, CartPriceEstimate, UpdateCartItemRequest } from '../types/api';
 
@@ -32,7 +32,7 @@ export const useCart = () => {
         try {
           const estimate = await getCartPriceEstimate();
           setPriceEstimate(estimate);
-        } catch (e) {
+        } catch {
           console.log('Price estimate failed (non-critical)');
           setPriceEstimate(null);
         }
@@ -100,7 +100,7 @@ export const useCart = () => {
 
       await updateCartItem(item.id, requestData);
       loadCart();
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to toggle selection');
     }
   };
@@ -122,7 +122,7 @@ export const useCart = () => {
 
       await Promise.all(promises);
       loadCart();
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update selection');
     }
   };
@@ -132,7 +132,7 @@ export const useCart = () => {
     try {
       await removeFromCart(itemId);
       loadCart();
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to remove item');
     }
   };
