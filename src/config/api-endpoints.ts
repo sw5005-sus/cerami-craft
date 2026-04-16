@@ -58,7 +58,7 @@ export const PRODUCT_ENDPOINTS = {
 // 图片上传相关端点
 export const IMAGE_ENDPOINTS = {
   // 获取图片上传URL
-  UPLOAD_URL: `${SERVICE_PATHS.PRODUCT_MS_MERCHANT}/images/upload-urls`,
+  UPLOAD_URL: `${SERVICE_PATHS.PRODUCT_MS}/images/upload-urls`,
 } as const;
 
 // 支付服务相关端点

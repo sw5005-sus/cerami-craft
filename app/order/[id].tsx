@@ -3,15 +3,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'; // 👈 1. 引入 Stack
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator, Alert, Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator, Alert, Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createComment } from '../../src/api/comment';
@@ -28,7 +28,7 @@ export default function OrderDetailScreen() {
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
   const [currentReviewItem, setCurrentReviewItem] = useState<any>(null);
   const [reviewForm, setReviewForm] = useState({
-    rating: 5,
+    rating: 0,
     content: '',
     isAnonymous: false,
     images: [] as string[] // 存 S3 返回的 image_id
@@ -99,7 +99,7 @@ export default function OrderDetailScreen() {
   // 打开评价弹窗
   const openReviewDialog = (item: any) => {
     setCurrentReviewItem(item);
-    setReviewForm({ rating: 5, content: '', isAnonymous: false, images: [] });
+    setReviewForm({ rating: 0, content: '', isAnonymous: false, images: [] });
     setReviewModalVisible(true);
   };
 
