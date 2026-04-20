@@ -22,6 +22,7 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.28",
     "@react-navigation/native-stack": "^7.11.0",
+    "@roman.sytnyk/blur-app-in-recents": "^0.2.0",
     "axios": "^1.13.5",
     "expo": "~54.0.32",
     "expo-auth-session": "~7.0.10",

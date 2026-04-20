@@ -1,7 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
+import BlurAppInRecents from '@roman.sytnyk/blur-app-in-recents';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert, Image,
@@ -17,20 +17,27 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Hooks
-import { useCheckout } from '../src/composables/useCheckout';
-import { usePaymentAccount } from '../src/composables/usePaymentAccount';
-
-// API (✅ 从正确的文件导入)
-import { getUserAddresses } from '../src/api/address'; // ✅ 从 address.ts 导入
+import { getUserAddresses } from '../src/api/address';
 import { removeFromCart } from '../src/api/cart';
 import { createOrder, CreateOrderRequest } from '../src/api/order';
 import { getUserProfile } from '../src/api/user';
+import { useCheckout } from '../src/composables/useCheckout';
+import { usePaymentAccount } from '../src/composables/usePaymentAccount';
 
 // Config & Types
 import { S3_CONFIG } from '../src/config/api-endpoints';
 import type { UserAddress } from '../src/types/api';
 
 export default function CheckoutScreen() {
+  useFocusEffect(
+    useCallback(() => {
+      BlurAppInRecents.enable();
+
+      return () => {
+        BlurAppInRecents.disable();
+      };
+    }, [])
+  );
   const router = useRouter();
   
   // 购物车/结账状态
@@ -228,13 +235,6 @@ export default function CheckoutScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* 顶部导航 */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
-      </View>
 
       <ScrollView style={styles.content}>
         
