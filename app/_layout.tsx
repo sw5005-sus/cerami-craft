@@ -1,14 +1,14 @@
 import { useAuth } from '@/hooks/useAuth';
 import { usePushSync } from '@/hooks/usePushSync';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { initializeSslPinning } from 'react-native-ssl-public-key-pinning';
+import { isTokenValid } from '../src/utils/auth';
 import { decryptAES_GCM } from '../src/utils/crypto';
-import { tokenStorage } from '../src/utils/storage';
+import { aesKeyStorage, tokenStorage } from '../src/utils/storage';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -22,7 +22,7 @@ Notifications.setNotificationHandler({
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   console.log('在后台收到了静默密文推送！', remoteMessage);
   const userToken = await tokenStorage.get();
-  if (!userToken) {
+  if (isTokenValid(userToken)) {
     console.log('🔒 用户已登出，静默丢弃该推送，绝不展示！');
     return; 
   }
@@ -31,7 +31,7 @@ messaging().setBackgroundMessageHandler(async remoteMessage => {
   if (!pushData || !pushData.encrypted_payload) return;
   const { title,  encrypted_payload} = pushData;
   try {
-    const savedAesKey = await AsyncStorage.getItem('PUSH_AES_KEY');
+    const savedAesKey = await aesKeyStorage.get();;
     if (!savedAesKey) {
       console.log('⚠️ 本地没有找到 AES 密钥，无法解密！');
       return;
@@ -93,7 +93,7 @@ export default function Layout() {
       const { title,  encrypted_payload} = pushData;
 
       try {
-        const savedAesKey = await AsyncStorage.getItem('PUSH_AES_KEY');
+        const savedAesKey = await aesKeyStorage.get();
         if (!savedAesKey) {
           console.log('⚠️ 本地没有找到 AES 密钥，无法解密！');
           return;

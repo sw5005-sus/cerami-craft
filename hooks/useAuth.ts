@@ -1,6 +1,5 @@
 import { isTokenValid } from '@/src/utils/auth';
-import { tokenStorage } from '@/src/utils/storage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { aesKeyStorage, tokenStorage } from '@/src/utils/storage';
 import { create } from 'zustand';
 
 interface AuthState {
@@ -21,7 +20,7 @@ export const useAuth = create<AuthState>((set) => ({
     logout: async () => {
         try {
             await tokenStorage.remove(); 
-            await AsyncStorage.removeItem('PUSH_AES_KEY'); 
+            await aesKeyStorage.remove();
             set({ isLoggedIn: false });
             console.log('✅ 清理完毕，彻底退出！');
         } catch (error) {

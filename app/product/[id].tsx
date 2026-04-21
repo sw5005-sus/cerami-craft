@@ -167,8 +167,8 @@ export default function ProductDetailScreen() {
       <View key={comment.id} style={[styles.reviewItem, isReply && styles.replyItem]}>
         <View style={styles.reviewHeaderRow}>
           <Text style={styles.reviewerName}>
-            {comment.is_anonymous ? 'Anonymous' : `User ${comment.user_id}`}
-            {isReply && <Text style={styles.replyBadge}> (From Sellers)</Text>}
+            {!isReply && (comment.is_anonymous ? 'Anonymous' : `User ${comment.user_id}`)}
+            {isReply && <Text style={styles.replyBadge}>From Sellers</Text>}
           </Text>
           {!isReply && renderStars(comment.stars)}
         </View>

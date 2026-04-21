@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 const TOKEN_KEY = 'user_token';
+const AES_KEY_NAME = 'PUSH_AES_KEY';
 
 export const tokenStorage = {
   /**
@@ -48,6 +49,45 @@ export const tokenStorage = {
       }
     } catch (e) {
       console.warn('error Remove token failed:', e);
+    }
+  }
+};
+
+export const aesKeyStorage = {
+  async save(aesKey: string) {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(AES_KEY_NAME, aesKey);
+      } else {
+        await SecureStore.setItemAsync(AES_KEY_NAME, aesKey);
+      }
+    } catch (e) {
+      console.warn('error Save AES key failed:', e);
+    }
+  },
+
+  async get() {
+    try {
+      if (Platform.OS === 'web') {
+        return localStorage.getItem(AES_KEY_NAME);
+      } else {
+        return await SecureStore.getItemAsync(AES_KEY_NAME);
+      }
+    } catch (e) {
+      console.warn('error Get AES key failed:', e);
+      return null;
+    }
+  },
+
+  async remove() {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(AES_KEY_NAME);
+      } else {
+        await SecureStore.deleteItemAsync(AES_KEY_NAME);
+      }
+    } catch (e) {
+      console.warn('error Remove AES key failed:', e);
     }
   }
 };

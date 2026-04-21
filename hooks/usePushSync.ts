@@ -1,12 +1,12 @@
 // src/hooks/usePushSync.ts
 import { useAuth } from '@/hooks/useAuth';
 import { bindPushToken } from '@/src/api/notification';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
 import * as Application from 'expo-application';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
+import { aesKeyStorage } from '../src/utils/storage';
 
 export const usePushSync = () => {
   // 从 Store 中拿到登录状态
@@ -35,7 +35,7 @@ export const usePushSync = () => {
           };
           const res = await bindPushToken(requestData);
           console.log('🔑 成功拿到后端的 AES 密钥！', res);
-          await AsyncStorage.setItem('PUSH_AES_KEY', res.aes_key);
+          await aesKeyStorage.save(res.aes_key);
         } catch (error) {
           console.log('❌ 获取 Token 或绑定 失败:', error);
         }
