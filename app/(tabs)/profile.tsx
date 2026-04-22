@@ -209,108 +209,116 @@ export default function ProfileScreen() {
     return null; 
   };
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#c75d35" />
+      </View>
+    );
+  }
+
   // ================= 渲染 UI =================
 
   // 2. Member Mode (已登录)
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        <Text style={styles.pageTitle}>My Profile</Text>
+    <View style={{ flex: 1, backgroundColor: '#f5f7fa' }}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
+          <Text style={styles.pageTitle}>My Profile</Text>
 
-        {/* --- 用户信息卡片 --- */}
-        <View style={styles.card}>
-          <View style={styles.userInfoRow}>
-            {/* 头像 (点击上传) */}
-            <TouchableOpacity style={styles.avatarContainer} onPress={handlePickImage}>
-              {getAvatarUri() ? (
-                <Image source={getAvatarUri()!} style={styles.avatar} />
-              ) : (
-                <View style={styles.defaultAvatar}>
-                  <Ionicons name="person" size={40} color="#ccc" />
+          {/* --- 用户信息卡片 --- */}
+          <View style={styles.card}>
+            <View style={styles.userInfoRow}>
+              {/* 头像 (点击上传) */}
+              <TouchableOpacity style={styles.avatarContainer} onPress={handlePickImage}>
+                {getAvatarUri() ? (
+                  <Image source={getAvatarUri()!} style={styles.avatar} />
+                ) : (
+                  <View style={styles.defaultAvatar}>
+                    <Ionicons name="person" size={40} color="#ccc" />
+                  </View>
+                )}
+                <View style={styles.cameraIcon}>
+                  <Ionicons name="camera" size={14} color="#fff" />
                 </View>
-              )}
-              <View style={styles.cameraIcon}>
-                <Ionicons name="camera" size={14} color="#fff" />
+              </TouchableOpacity>
+
+              {/* 名字 (点击修改) */}
+              <View style={styles.userDetails}>
+                <TouchableOpacity onPress={() => { setNewName(user?.name || ''); setEditNameVisible(true); }}>
+                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                    <Text style={styles.userName}>{user?.name || 'Set Name'}</Text>
+                    <Ionicons name="pencil" size={16} color="#999" style={{marginLeft: 8}} />
+                  </View>
+                </TouchableOpacity>
+                <Text style={styles.userEmail}>{user?.email}</Text>
               </View>
+            </View>
+          </View>
+
+          {/* --- 钱包卡片 --- */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>My Wallet</Text>
+              {/* 👁️ 修改：余额加上小眼睛 */}
+              <View style={styles.balanceRow}>
+                <Text style={styles.balanceText}>
+                  {showBalance ? `$${(payment?.balance || 0).toFixed(2)}` : '****'}
+                </Text>
+                <TouchableOpacity 
+                  style={styles.eyeBtn} 
+                  onPress={() => setShowBalance(!showBalance)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons 
+                    name={showBalance ? "eye-outline" : "eye-off-outline"} 
+                    size={20} 
+                    color="#999" 
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.menuItem} onPress={() => setTopUpVisible(true)}>
+              <View style={styles.menuLeft}>
+                <Ionicons name="wallet-outline" size={22} color="#666" />
+                <Text style={styles.menuText}>Top Up Balance</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#ccc" />
             </TouchableOpacity>
-
-            {/* 名字 (点击修改) */}
-            <View style={styles.userDetails}>
-              <TouchableOpacity onPress={() => { setNewName(user?.name || ''); setEditNameVisible(true); }}>
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                  <Text style={styles.userName}>{user?.name || 'Set Name'}</Text>
-                  <Ionicons name="pencil" size={16} color="#999" style={{marginLeft: 8}} />
-                </View>
-              </TouchableOpacity>
-              <Text style={styles.userEmail}>{user?.email}</Text>
-            </View>
           </View>
-        </View>
 
-        {/* --- 钱包卡片 --- */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>My Wallet</Text>
-            {/* 👁️ 修改：余额加上小眼睛 */}
-            <View style={styles.balanceRow}>
-              <Text style={styles.balanceText}>
-                {showBalance ? `$${(payment?.balance || 0).toFixed(2)}` : '****'}
-              </Text>
-              <TouchableOpacity 
-                style={styles.eyeBtn} 
-                onPress={() => setShowBalance(!showBalance)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons 
-                  name={showBalance ? "eye-outline" : "eye-off-outline"} 
-                  size={20} 
-                  color="#999" 
-                />
-              </TouchableOpacity>
-            </View>
+          {/* --- 菜单列表 --- */}
+          <View style={styles.card}>
+            {/* 地址管理：跳转 */}
+            <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/address')}>
+              <View style={styles.menuLeft}>
+                <Ionicons name="location-outline" size={22} color="#666" />
+                <Text style={styles.menuText}>Shipping Addresses</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            </TouchableOpacity>
+            
+            <View style={styles.menuDivider} />
+
+            {/* 订单管理：跳转 */}
+            <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)/orders')}>
+              <View style={styles.menuLeft}>
+                <Ionicons name="list-outline" size={22} color="#666" />
+                <Text style={styles.menuText}>My Orders</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.menuItem} onPress={() => setTopUpVisible(true)}>
-            <View style={styles.menuLeft}>
-               <Ionicons name="wallet-outline" size={22} color="#666" />
-               <Text style={styles.menuText}>Top Up Balance</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+
+          {/* 登出 */}
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+            <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* --- 菜单列表 --- */}
-        <View style={styles.card}>
-           {/* 地址管理：跳转 */}
-           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/address')}>
-            <View style={styles.menuLeft}>
-               <Ionicons name="location-outline" size={22} color="#666" />
-               <Text style={styles.menuText}>Shipping Addresses</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-          
-          <View style={styles.menuDivider} />
-
-          {/* 订单管理：跳转 */}
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)/orders')}>
-            <View style={styles.menuLeft}>
-               <Ionicons name="list-outline" size={22} color="#666" />
-               <Text style={styles.menuText}>My Orders</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#ccc" />
-          </TouchableOpacity>
-        </View>
-
-        {/* 登出 */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
-
-      </ScrollView>
-
+        </ScrollView>
+      </SafeAreaView>
       {/* === 弹窗 1: Top Up === */}
       <Modal animationType="slide" transparent={true} visible={topUpVisible} onRequestClose={() => setTopUpVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
@@ -359,8 +367,7 @@ export default function ProfileScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-
-    </SafeAreaView>
+    </View>
   );
 }
 
